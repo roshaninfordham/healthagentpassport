@@ -20,6 +20,18 @@ pnpm demo
 
 Open [http://localhost:3000](http://localhost:3000).
 
+The terminal waits for the real services and prints a readiness box:
+
+```text
++--------------------------------------------------------------+
+| PriorAuth Passport Demo                                      |
++--------------------------------------------------------------+
+| EHR API    http://localhost:4001     healthy                 |
+| Payer API  http://localhost:4002     healthy                 |
+| Studio     http://localhost:3000     healthy                 |
++--------------------------------------------------------------+
+```
+
 ```mermaid
 flowchart LR
   Demo[pnpm demo] --> EHR[Sample EHR API<br/>:4001]
@@ -38,17 +50,21 @@ flowchart LR
 ## CLI
 
 ```bash
-pnpm --filter @priorauth/passport-cli dev doctor
-pnpm --filter @priorauth/passport-cli dev submit
-pnpm --filter @priorauth/passport-cli dev sign
+pnpm run doctor
+pnpm priorauth submit --case pa-case-001
+pnpm priorauth submit --case pa-case-001 --scenario incomplete
+pnpm priorauth sign
 ```
+
+`pnpm priorauth submit` starts a Studio run and then polls the run events, so
+the terminal and browser show the same agent actions.
 
 ## Environment
 
 ```bash
 EHR_API_URL="http://localhost:4001"
 PAYER_API_URL="http://localhost:4002"
-DEMO_STEP_DELAY_MS="750"
+DEMO_STEP_DELAY_MS="1200"
 ALLOW_REAL_PHI="false"
 SYNTHETIC_DATA_ONLY="true"
 ```
@@ -65,7 +81,20 @@ The complete case should show:
 
 The incomplete case should show:
 
-- Missing `Recent observation`
+- Missing `Recent relevant observation`
 - Missing `Referral note`
 - `not_submitted`
 - Draft audit evidence
+
+## Studio Tabs
+
+| Tab | Purpose |
+| --- | --- |
+| Overview | Product explanation, service status, system map, market assumptions |
+| Prior Auth Inbox | Operator case queue with complete and incomplete demo cases |
+| Live Workflow | Timeline, tool calls, request/response inspector |
+| ROI Calculator | Per-case and adjustable practice-level ROI model |
+| Evidence & Requirements | Payer requirements and matched/missing EHR evidence |
+| Audit Ledger | API proof, audit hashes, copy/download packet |
+| Developer Mode | CLI and SDK integration examples |
+| Settings | ROI assumptions, payer rules, agent identity, safety boundary |

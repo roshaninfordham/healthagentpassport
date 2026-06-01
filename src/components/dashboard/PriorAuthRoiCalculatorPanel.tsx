@@ -1,12 +1,21 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Bar, BarChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import {
+  Bar,
+  BarChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis
+} from "recharts";
 import { Calculator, ToggleLeft, ToggleRight } from "lucide-react";
 
 type RoiResult = {
   manualProviderCostUsd?: number;
   electronicProviderCostUsd?: number;
+  manualTimeMinutes?: number;
+  electronicTimeMinutes?: number;
   transactionCostSavingsUsd?: number;
   minutesSavedBaseline?: number;
   bestCaseTimeSavedMinutes?: number;
@@ -16,25 +25,15 @@ type RoiResult = {
   netSavingsAfterPlatformFeeUsd?: number;
 };
 
-type PracticeRoi = {
-  volume?: number;
-  grossTransactionSavingsUsd?: number;
-  grossBaselineMinutesSaved?: number;
-  grossBestCaseMinutesSaved?: number;
-  grossLaborSavingsBaselineUsd?: number;
-  grossLaborSavingsBestCaseUsd?: number;
-  platformRevenueUsd?: number;
-  netTransactionSavingsAfterFeesUsd?: number;
-};
-
 type Props = {
   roi?: unknown;
-  practiceRoi?: unknown;
 };
 
 const fallbackRoi: RoiResult = {
   manualProviderCostUsd: 10.97,
   electronicProviderCostUsd: 5.79,
+  manualTimeMinutes: 16,
+  electronicTimeMinutes: 9,
   transactionCostSavingsUsd: 5.18,
   minutesSavedBaseline: 7,
   bestCaseTimeSavedMinutes: 14,
@@ -42,17 +41,6 @@ const fallbackRoi: RoiResult = {
   laborSavingsBestCaseUsd: 8.17,
   platformFeePerAuthorizationUsd: 1.25,
   netSavingsAfterPlatformFeeUsd: 3.93
-};
-
-const fallbackPractice: PracticeRoi = {
-  volume: 9360,
-  grossTransactionSavingsUsd: 48484.8,
-  grossBaselineMinutesSaved: 65520,
-  grossBestCaseMinutesSaved: 131040,
-  grossLaborSavingsBaselineUsd: 38220,
-  grossLaborSavingsBestCaseUsd: 76440,
-  platformRevenueUsd: 11700,
-  netTransactionSavingsAfterFeesUsd: 36784.8
 };
 
 function money(value = 0) {
@@ -67,10 +55,63 @@ function number(value = 0) {
   return new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 }).format(value);
 }
 
-export function PriorAuthRoiCalculatorPanel({ roi, practiceRoi }: Props) {
+function Slider({
+  label,
+  value,
+  min,
+  max,
+  step = 1,
+  suffix,
+  onChange
+}: {
+  label: string;
+  value: number;
+  min: number;
+  max: number;
+  step?: number;
+  suffix?: string;
+  onChange: (value: number) => void;
+}) {
+  return (
+    <label className="grid gap-2 rounded-lg border border-white/10 bg-white/[0.035] p-3 text-sm">
+      <span className="flex items-center justify-between gap-3">
+        <span className="text-slate-300">{label}</span>
+        <span className="font-semibold text-white">
+          {value}
+          {suffix ?? ""}
+        </span>
+      </span>
+      <input
+        type="range"
+        min={min}
+        max={max}
+        step={step}
+        value={value}
+        onChange={(event) => onChange(Number(event.target.value))}
+        className="w-full accent-cyan-300"
+      />
+    </label>
+  );
+}
+
+export function PriorAuthRoiCalculatorPanel({ roi }: Props) {
   const [includeLabor, setIncludeLabor] = useState(false);
+  const [physicians, setPhysicians] = useState(5);
+  const [authsPerPhysician, setAuthsPerPhysician] = useState(39);
+  const [staffRate, setStaffRate] = useState(35);
+  const [platformFee, setPlatformFee] = useState(1.25);
   const currentRoi = (roi as RoiResult | undefined) ?? fallbackRoi;
-  const currentPractice = (practiceRoi as PracticeRoi | undefined) ?? fallbackPractice;
+
+  const transactionSavings = currentRoi.transactionCostSavingsUsd ?? 5.18;
+  const minutesSaved = currentRoi.minutesSavedBaseline ?? 7;
+  const bestCaseMinutes = currentRoi.bestCaseTimeSavedMinutes ?? 14;
+  const laborBaseline = (minutesSaved / 60) * staffRate;
+  const laborBestCase = (bestCaseMinutes / 60) * staffRate;
+  const annualVolume = physicians * authsPerPhysician * 48;
+  const annualTransactionSavings = transactionSavings * annualVolume;
+  const annualNetTransactionSavings = (transactionSavings - platformFee) * annualVolume;
+  const annualBaselineHours = (minutesSaved * annualVolume) / 60;
+  const annualBestCaseHours = (bestCaseMinutes * annualVolume) / 60;
 
   const chartData = useMemo(
     () => [
@@ -84,15 +125,14 @@ export function PriorAuthRoiCalculatorPanel({ roi, practiceRoi }: Props) {
       },
       {
         name: "Saved",
-        cost: currentRoi.transactionCostSavingsUsd ?? 5.18
+        cost: transactionSavings
       }
     ],
-    [currentRoi]
+    [currentRoi, transactionSavings]
   );
 
   const totalWithLabor =
-    (currentRoi.transactionCostSavingsUsd ?? 0) +
-    (includeLabor ? currentRoi.laborSavingsBaselineUsd ?? 0 : 0);
+    transactionSavings + (includeLabor ? laborBaseline : 0);
 
   return (
     <section className="glass-panel rounded-lg p-5">
@@ -119,7 +159,7 @@ export function PriorAuthRoiCalculatorPanel({ roi, practiceRoi }: Props) {
         <div className="rounded-lg border border-cyan-400/20 bg-cyan-400/10 p-4">
           <p className="text-xs uppercase text-cyan-100">Mode A</p>
           <p className="mt-1 text-2xl font-semibold text-white">
-            {money(currentRoi.transactionCostSavingsUsd)}
+            {money(transactionSavings)}
           </p>
           <p className="mt-1 text-xs leading-5 text-cyan-50/80">
             Transaction delta only. This is the default ROI claim.
@@ -128,7 +168,7 @@ export function PriorAuthRoiCalculatorPanel({ roi, practiceRoi }: Props) {
         <div className="rounded-lg border border-emerald-400/20 bg-emerald-400/10 p-4">
           <p className="text-xs uppercase text-emerald-100">Mode B</p>
           <p className="mt-1 text-2xl font-semibold text-white">
-            {currentRoi.minutesSavedBaseline ?? 7} min
+            {minutesSaved} min
           </p>
           <p className="mt-1 text-xs leading-5 text-emerald-50/80">
             Baseline staff-time sensitivity, tracked separately.
@@ -165,19 +205,71 @@ export function PriorAuthRoiCalculatorPanel({ roi, practiceRoi }: Props) {
         </ResponsiveContainer>
       </div>
 
-      <div className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
+      <div className="mt-5 grid gap-3 lg:grid-cols-4">
+        <Slider
+          label="Physicians"
+          value={physicians}
+          min={1}
+          max={25}
+          onChange={setPhysicians}
+        />
+        <Slider
+          label="Auths / physician / week"
+          value={authsPerPhysician}
+          min={1}
+          max={80}
+          onChange={setAuthsPerPhysician}
+        />
+        <Slider
+          label="Staff hourly rate"
+          value={staffRate}
+          min={20}
+          max={80}
+          suffix="/hr"
+          onChange={setStaffRate}
+        />
+        <Slider
+          label="Platform fee"
+          value={platformFee}
+          min={0}
+          max={5}
+          step={0.25}
+          suffix="/auth"
+          onChange={setPlatformFee}
+        />
+      </div>
+
+      <div className="mt-4 grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-4">
         <div className="rounded-md border border-white/10 bg-white/[0.035] p-3">
-          <p className="text-slate-400">Practice volume</p>
+          <p className="text-slate-400">Annual prior-auth volume</p>
           <p className="mt-1 font-semibold text-white">
-            {number(currentPractice.volume)} authorizations / year
+            {number(annualVolume)}
+          </p>
+        </div>
+        <div className="rounded-md border border-white/10 bg-white/[0.035] p-3">
+          <p className="text-slate-400">Annual transaction savings</p>
+          <p className="mt-1 font-semibold text-white">
+            {money(annualTransactionSavings)}
+          </p>
+        </div>
+        <div className="rounded-md border border-white/10 bg-white/[0.035] p-3">
+          <p className="text-slate-400">Annual baseline staff time saved</p>
+          <p className="mt-1 font-semibold text-white">
+            {number(annualBaselineHours)} hours
           </p>
         </div>
         <div className="rounded-md border border-white/10 bg-white/[0.035] p-3">
           <p className="text-slate-400">Net transaction savings after fee</p>
           <p className="mt-1 font-semibold text-white">
-            {money(currentPractice.netTransactionSavingsAfterFeesUsd)}
+            {money(annualNetTransactionSavings)}
           </p>
         </div>
+      </div>
+
+      <div className="mt-4 rounded-md border border-white/10 bg-black/15 p-3 text-sm leading-6 text-slate-300">
+        Labor value: {money(laborBaseline)} for {minutesSaved} min baseline,{" "}
+        {money(laborBestCase)} for {bestCaseMinutes} min best case. Annual
+        best-case staff time saved: {number(annualBestCaseHours)} hours.
       </div>
     </section>
   );

@@ -27,11 +27,13 @@ flowchart TD
 ## Presenter Script
 
 1. Start with the user: practice operations managers and API developers.
-2. Show live infrastructure: Studio, sample EHR, sample payer, config bundle.
-3. Point to the two workflows:
+2. Show the terminal readiness box from `pnpm demo`.
+3. Open Studio and show the Overview tab: what the product does, services,
+   system map, and market assumptions.
+4. Point to the two workflows:
    manual is `$10.97` and `16 min`; electronic is `$5.79` and `9 min`.
-4. Run `Run complete ePA case`.
-5. Narrate the live steps:
+5. Open Prior Auth Inbox and run the complete ePA case.
+6. Narrate the live steps:
    - EHR patient, condition, medication, observation, and document reads
    - Payer requirement discovery
    - Evidence matching
@@ -39,15 +41,17 @@ flowchart TD
    - Payer submission
    - ROI calculation
    - Audit hash generation
-6. Show `PA-DEMO-1001` and `pending_payer_review`.
-7. Show ROI carefully:
+7. In Live Workflow, point to Tool Calls and Request / Response Inspector.
+8. Show `PA-DEMO-1001` and `pending_payer_review`.
+9. Show ROI carefully:
    - Mode A: `$5.18` transaction savings
    - Mode B: `7 min` baseline time saved
    - Mode C: labor dollar sensitivity only if toggled
-8. Run `Run incomplete documentation case`.
-9. Show missing recent observation and referral note.
-10. Emphasize that no payer submission is sent when required evidence is
+10. Run `Run incomplete documentation case`.
+11. Show missing recent observation and referral note.
+12. Emphasize that no payer submission is sent when required evidence is
     missing.
+13. Open Developer Mode and show the CLI/SDK path.
 
 ## Demo Guarantees
 
@@ -55,6 +59,7 @@ flowchart TD
 | --- | --- |
 | Real-time workflow | Live timeline via server-sent events |
 | Real infrastructure | Fastify EHR and payer APIs on local ports |
+| Agentic visibility | Tool Calls panel plus API request/response inspector |
 | ROI proof | ROI calculator and config/roi.yaml |
 | Evidence safety | Evidence checklist and blocked incomplete case |
 | Audit trail | Evidence hash and ROI hash |

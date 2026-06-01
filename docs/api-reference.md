@@ -49,6 +49,30 @@ Clears in-memory run state and resets EHR and payer counters.
 
 Server-sent event stream for `PriorAuthRunEvent` objects.
 
+Each event may include:
+
+```json
+{
+  "details": {
+    "summary": "Calling GET http://localhost:4001/fhir/Patient/maya-001",
+    "toolCall": {
+      "id": "fetch_patient",
+      "name": "fetchEhrResource",
+      "status": "running",
+      "input": { "resource": "Patient", "id": "maya-001" }
+    },
+    "apiExchange": {
+      "id": "fetch_patient",
+      "label": "EHR Patient request",
+      "source": "ehr",
+      "method": "GET",
+      "url": "http://localhost:4001/fhir/Patient/maya-001",
+      "status": "running"
+    }
+  }
+}
+```
+
 Phases:
 
 ```text
@@ -148,5 +172,6 @@ priorauth init
 priorauth demo
 priorauth doctor
 priorauth submit --case pa-case-001 --studio http://localhost:3000
+priorauth submit --case pa-case-001 --scenario incomplete
 priorauth sign
 ```

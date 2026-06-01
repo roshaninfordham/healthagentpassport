@@ -98,3 +98,23 @@ export type PriorAuthRunEvent = {
   durationMs?: number;
   details?: Record<string, unknown>;
 };
+
+export type ToolCallRecord = {
+  id: string;
+  name: string;
+  status: "running" | "passed" | "failed" | "blocked";
+  input: Record<string, unknown>;
+  output?: Record<string, unknown>;
+};
+
+export type ApiExchange = {
+  id: string;
+  label: string;
+  source: "ehr" | "payer" | "studio" | "core";
+  method: "GET" | "POST";
+  url: string;
+  status: "running" | "passed" | "failed" | "blocked";
+  requestBody?: unknown;
+  responseBody?: unknown;
+  summary?: string;
+};

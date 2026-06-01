@@ -38,11 +38,12 @@ export async function GET() {
   const ehrUrl = process.env.EHR_API_URL ?? "http://localhost:4001";
   const payerUrl = process.env.PAYER_API_URL ?? "http://localhost:4002";
 
-  const [ehr, payer, roiConfig, policyConfig] = await Promise.all([
+  const [ehr, payer, roiConfig, policyConfig, trustedAgent] = await Promise.all([
     checkHttp(`${ehrUrl}/health`),
     checkHttp(`${payerUrl}/health`),
     checkFile("config/roi.yaml"),
-    checkFile("config/priorauth-policy.yaml")
+    checkFile("config/priorauth-policy.yaml"),
+    checkFile(".priorauth/agents/trusted-priorauth-agent.json")
   ]);
 
   return Response.json({
@@ -55,8 +56,9 @@ export async function GET() {
     },
     roiConfig,
     policyConfig,
+    trustedAgent,
     demo: {
-      stepDelayMs: Number(process.env.DEMO_STEP_DELAY_MS ?? 750)
+      stepDelayMs: Number(process.env.DEMO_STEP_DELAY_MS ?? 1200)
     }
   });
 }

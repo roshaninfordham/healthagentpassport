@@ -9,6 +9,7 @@ type StatusResponse = {
   studio: { online: boolean; url: string; stream: string };
   roiConfig: { loaded: boolean; path: string };
   policyConfig: { loaded: boolean; path: string };
+  trustedAgent: { loaded: boolean; path: string };
   demo: { stepDelayMs: number };
 };
 
@@ -67,7 +68,7 @@ export function PriorAuthServiceStatusPanel() {
         <Activity className="h-5 w-5 text-emerald-300" />
         Live infrastructure
       </div>
-      <div className="mt-4 grid gap-3 md:grid-cols-2 lg:grid-cols-4">
+      <div className="mt-4 grid gap-3 md:grid-cols-2 lg:grid-cols-5">
         <StatusPill
           label="Sample EHR API"
           online={status?.ehr.online ?? false}
@@ -88,6 +89,11 @@ export function PriorAuthServiceStatusPanel() {
           online={(status?.roiConfig.loaded ?? false) && (status?.policyConfig.loaded ?? false)}
           detail="roi.yaml + priorauth-policy.yaml"
         />
+        <StatusPill
+          label="Agent identity"
+          online={status?.trustedAgent.loaded ?? false}
+          detail="TrustedPriorAuthAgent verified"
+        />
       </div>
 
       <div className="mt-4 flex flex-wrap gap-2 text-xs text-slate-300">
@@ -97,7 +103,7 @@ export function PriorAuthServiceStatusPanel() {
         </span>
         <span className="inline-flex items-center gap-2 rounded-md border border-white/10 bg-white/[0.04] px-3 py-1">
           <FileCog className="h-3.5 w-3.5 text-amber-300" />
-          Step delay {status?.demo.stepDelayMs ?? 750} ms
+          Step delay {status?.demo.stepDelayMs ?? 1200} ms
         </span>
         {!status?.ehr.online || !status?.payer.online ? (
           <span className="inline-flex items-center gap-2 rounded-md border border-rose-400/20 bg-rose-400/10 px-3 py-1 text-rose-100">

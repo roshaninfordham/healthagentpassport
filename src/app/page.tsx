@@ -2,30 +2,63 @@
 
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
+import { DeveloperModePanel } from "@/components/dashboard/DeveloperModePanel";
 import { Hero } from "@/components/dashboard/Hero";
 import { ManualVsElectronicPanel } from "@/components/dashboard/ManualVsElectronicPanel";
+import { MarketBenchmarksPanel } from "@/components/dashboard/MarketBenchmarksPanel";
 import { MarketPainPanel } from "@/components/dashboard/MarketPainPanel";
 import { PriorAuthApiStatsPanel } from "@/components/dashboard/PriorAuthApiStatsPanel";
 import { PriorAuthAuditLedger } from "@/components/dashboard/PriorAuthAuditLedger";
 import { PriorAuthCaseCard } from "@/components/dashboard/PriorAuthCaseCard";
 import { PriorAuthEvidenceChecklistPanel } from "@/components/dashboard/PriorAuthEvidenceChecklistPanel";
+import { PriorAuthInboxPanel } from "@/components/dashboard/PriorAuthInboxPanel";
 import { PriorAuthInspector } from "@/components/dashboard/PriorAuthInspector";
 import { PriorAuthLiveTimeline } from "@/components/dashboard/PriorAuthLiveTimeline";
 import { PriorAuthRoiCalculatorPanel } from "@/components/dashboard/PriorAuthRoiCalculatorPanel";
 import { PriorAuthRunControls } from "@/components/dashboard/PriorAuthRunControls";
 import { PriorAuthServiceStatusPanel } from "@/components/dashboard/PriorAuthServiceStatusPanel";
+import { PriorAuthToolCallsPanel } from "@/components/dashboard/PriorAuthToolCallsPanel";
+import { SettingsPanel } from "@/components/dashboard/SettingsPanel";
+import { SystemMapPanel } from "@/components/dashboard/SystemMapPanel";
+import { WhatThisDoesPanel } from "@/components/dashboard/WhatThisDoesPanel";
 import type {
   PriorAuthRunEvent,
   PriorAuthRunResult
 } from "@/lib/live-events";
 
 type Scenario = "complete" | "incomplete";
+type Tab =
+  | "overview"
+  | "inbox"
+  | "workflow"
+  | "roi"
+  | "evidence"
+  | "audit"
+  | "developer"
+  | "settings";
+
+const tabs: Array<{ id: Tab; label: string }> = [
+  { id: "overview", label: "Overview" },
+  { id: "inbox", label: "Prior Auth Inbox" },
+  { id: "workflow", label: "Live Workflow" },
+  { id: "roi", label: "ROI Calculator" },
+  { id: "evidence", label: "Evidence & Requirements" },
+  { id: "audit", label: "Audit Ledger" },
+  { id: "developer", label: "Developer Mode" },
+  { id: "settings", label: "Settings" }
+];
 
 function mergeResult(
   result: PriorAuthRunResult,
   details: Record<string, unknown> | undefined
 ): PriorAuthRunResult {
   if (!details) return result;
+  const toolCall = details.toolCall as
+    | NonNullable<PriorAuthRunResult["toolCalls"]>[number]
+    | undefined;
+  const apiExchange = details.apiExchange as
+    | NonNullable<PriorAuthRunResult["apiExchanges"]>[number]
+    | undefined;
 
   return {
     ...result,
@@ -43,11 +76,26 @@ function mergeResult(
     practiceRoi: details.practiceRoi ?? result.practiceRoi,
     audit: details.audit ?? result.audit,
     ehrStats: details.ehrStats ?? result.ehrStats,
-    payerStats: details.payerStats ?? result.payerStats
+    payerStats: details.payerStats ?? result.payerStats,
+    toolCalls: toolCall
+      ? [
+          ...(result.toolCalls ?? []).filter((item) => item.id !== toolCall.id),
+          toolCall
+        ]
+      : result.toolCalls,
+    apiExchanges: apiExchange
+      ? [
+          ...(result.apiExchanges ?? []).filter(
+            (item) => item.id !== apiExchange.id
+          ),
+          apiExchange
+        ]
+      : result.apiExchanges
   };
 }
 
 export default function Home() {
+  const [activeTab, setActiveTab] = useState<Tab>("overview");
   const [loading, setLoading] = useState<Scenario | null>(null);
   const [resetting, setResetting] = useState(false);
   const [currentRunId, setCurrentRunId] = useState<string | null>(null);
@@ -100,6 +148,7 @@ export default function Home() {
   }, []);
 
   async function runScenario(scenario: Scenario) {
+    setActiveTab("workflow");
     setLoading(scenario);
     currentRunIdRef.current = null;
     setCurrentRunId(null);
@@ -164,38 +213,95 @@ export default function Home() {
   return (
     <main className="min-h-screen text-slate-50">
       <div className="mx-auto flex max-w-7xl flex-col gap-5 px-4 py-5 sm:px-6 lg:px-8">
-        <Hero />
-        <MarketPainPanel />
-        <PriorAuthServiceStatusPanel />
-        <ManualVsElectronicPanel />
+        <Hero
+          loading={loading}
+          onRun={runScenario}
+          onDeveloperMode={() => setActiveTab("developer")}
+        />
 
-        <section className="grid gap-5 lg:grid-cols-[390px_minmax(0,1fr)]">
-          <div className="grid gap-5">
-            <PriorAuthRunControls
-              loading={loading}
-              resetting={resetting}
-              onRun={runScenario}
-              onReset={resetDemo}
-            />
-            <PriorAuthCaseCard priorAuthCase={result.priorAuthCase} />
-          </div>
-          <PriorAuthLiveTimeline events={events} loading={loading !== null} />
-        </section>
+        <nav className="glass-panel sticky top-3 z-10 flex gap-2 overflow-auto rounded-lg p-2">
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => setActiveTab(tab.id)}
+              className={`whitespace-nowrap rounded-md px-3 py-2 text-sm font-medium transition ${
+                activeTab === tab.id
+                  ? "border border-cyan-400/30 bg-cyan-400/10 text-cyan-100"
+                  : "border border-white/10 bg-white/[0.03] text-slate-300 hover:bg-white/[0.07]"
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </nav>
 
-        <section className="grid gap-5 lg:grid-cols-[0.95fr_1.05fr]">
-          <PriorAuthEvidenceChecklistPanel evidence={result.evidence} />
-          <PriorAuthRoiCalculatorPanel
-            roi={result.roi}
-            practiceRoi={result.practiceRoi}
-          />
-        </section>
+        {activeTab === "overview" ? (
+          <>
+            <WhatThisDoesPanel />
+            <PriorAuthServiceStatusPanel />
+            <SystemMapPanel />
+            <MarketBenchmarksPanel />
+            <ManualVsElectronicPanel />
+            <MarketPainPanel />
+          </>
+        ) : null}
 
-        <PriorAuthApiStatsPanel refreshKey={refreshKey} />
+        {activeTab === "inbox" ? (
+          <>
+            <PriorAuthInboxPanel onRun={runScenario} loading={loading} />
+            <PriorAuthServiceStatusPanel />
+          </>
+        ) : null}
 
-        <section className="grid gap-5 lg:grid-cols-[1.05fr_0.95fr]">
-          <PriorAuthInspector result={result} />
-          <PriorAuthAuditLedger events={events} result={result} />
-        </section>
+        {activeTab === "workflow" ? (
+          <>
+            <section className="grid gap-5 lg:grid-cols-[390px_minmax(0,1fr)]">
+              <div className="grid gap-5">
+                <PriorAuthRunControls
+                  loading={loading}
+                  resetting={resetting}
+                  onRun={runScenario}
+                  onReset={resetDemo}
+                />
+                <PriorAuthCaseCard priorAuthCase={result.priorAuthCase} />
+              </div>
+              <PriorAuthLiveTimeline
+                events={events}
+                loading={loading !== null}
+              />
+            </section>
+            <section className="grid gap-5 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
+              <PriorAuthToolCallsPanel result={result} />
+              <PriorAuthInspector result={result} />
+            </section>
+          </>
+        ) : null}
+
+        {activeTab === "roi" ? (
+          <>
+            <PriorAuthRoiCalculatorPanel roi={result.roi} />
+            <MarketBenchmarksPanel />
+          </>
+        ) : null}
+
+        {activeTab === "evidence" ? (
+          <section className="grid gap-5 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
+            <PriorAuthEvidenceChecklistPanel evidence={result.evidence} />
+            <PriorAuthInspector result={result} />
+          </section>
+        ) : null}
+
+        {activeTab === "audit" ? (
+          <>
+            <PriorAuthApiStatsPanel refreshKey={refreshKey} />
+            <PriorAuthAuditLedger events={events} result={result} />
+          </>
+        ) : null}
+
+        {activeTab === "developer" ? <DeveloperModePanel /> : null}
+
+        {activeTab === "settings" ? <SettingsPanel /> : null}
       </div>
     </main>
   );

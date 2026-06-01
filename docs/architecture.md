@@ -56,6 +56,7 @@ sequenceDiagram
   API->>Runner: runElectronicPriorAuthDemo()
   Runner->>Events: start
   Events-->>UI: event stream
+  Runner->>Events: toolCall + apiExchange metadata for every step
   Runner->>Core: getSeedCase()
   Runner->>EHR: GET /fhir/Patient/:id
   Runner->>EHR: GET /fhir/Condition
@@ -76,6 +77,24 @@ sequenceDiagram
     Runner->>Events: blocked
   end
 ```
+
+## Event Observability
+
+```mermaid
+flowchart LR
+  Step[Workflow step] --> Tool[toolCall metadata]
+  Step --> Api[apiExchange metadata]
+  Step --> Summary[human-readable summary]
+  Tool --> Timeline[Live Workflow timeline]
+  Api --> Inspector[Request / Response Inspector]
+  Tool --> CLI[priorauth submit terminal stream]
+  Summary --> Timeline
+```
+
+The event stream is intentionally verbose for demo clarity. Each action waits
+for the configured `DEMO_STEP_DELAY_MS`, then emits enough metadata to show what
+the agent called, which API was contacted, and what evidence or ROI artifact was
+produced.
 
 ## Evidence State Machine
 

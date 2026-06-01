@@ -1,7 +1,15 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Activity, Calculator, FileCheck2, ShieldCheck } from "lucide-react";
+import {
+  Activity,
+  Calculator,
+  Code2,
+  FileCheck2,
+  PlayCircle,
+  ShieldCheck,
+  TriangleAlert
+} from "lucide-react";
 
 const badges = [
   "Synthetic data only",
@@ -12,7 +20,13 @@ const badges = [
   "Agent identity protected"
 ];
 
-export function Hero() {
+type Props = {
+  loading: "complete" | "incomplete" | null;
+  onRun: (scenario: "complete" | "incomplete") => void;
+  onDeveloperMode: () => void;
+};
+
+export function Hero({ loading, onRun, onDeveloperMode }: Props) {
   return (
     <motion.section
       initial={{ opacity: 0, y: 8 }}
@@ -45,6 +59,34 @@ export function Hero() {
             with requirement discovery, document assembly, agent identity, payer
             submission, ROI proof, and audit evidence.
           </p>
+          <div className="mt-5 flex flex-wrap gap-3">
+            <button
+              type="button"
+              onClick={() => onRun("complete")}
+              disabled={loading !== null}
+              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md border border-emerald-400/40 bg-emerald-400/15 px-4 py-2.5 text-sm font-semibold text-emerald-50 transition hover:bg-emerald-400/25 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <PlayCircle className="h-4 w-4" />
+              Run complete ePA case
+            </button>
+            <button
+              type="button"
+              onClick={() => onRun("incomplete")}
+              disabled={loading !== null}
+              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md border border-amber-400/40 bg-amber-400/15 px-4 py-2.5 text-sm font-semibold text-amber-50 transition hover:bg-amber-400/25 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <TriangleAlert className="h-4 w-4" />
+              Run incomplete documentation case
+            </button>
+            <button
+              type="button"
+              onClick={onDeveloperMode}
+              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md border border-white/15 bg-white/[0.04] px-4 py-2.5 text-sm font-semibold text-slate-100 transition hover:bg-white/[0.08]"
+            >
+              <Code2 className="h-4 w-4" />
+              View developer quickstart
+            </button>
+          </div>
         </div>
 
         <div className="grid min-w-[260px] gap-2 text-sm text-slate-300">

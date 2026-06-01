@@ -1,8 +1,10 @@
 import type {
   EvidenceResult,
+  ApiExchange,
   PayerRequirements,
   PriorAuthCase,
-  PriorAuthRunEvent
+  PriorAuthRunEvent,
+  ToolCallRecord
 } from "@priorauth/passport-core";
 
 export type { PriorAuthRunEvent };
@@ -18,6 +20,8 @@ export type PriorAuthRunResult = {
   audit?: unknown;
   ehrStats?: unknown;
   payerStats?: unknown;
+  toolCalls?: ToolCallRecord[];
+  apiExchanges?: ApiExchange[];
 };
 
 export type RunState = {
@@ -86,9 +90,28 @@ export function ingestRunEvent(event: PriorAuthRunEvent, scenario: "complete" | 
 
   run.events.push(event);
   run.updatedAt = now;
+  const toolCall = event.details?.toolCall as ToolCallRecord | undefined;
+  const apiExchange = event.details?.apiExchange as ApiExchange | undefined;
+  const nextToolCalls = toolCall
+    ? [
+        ...(run.result.toolCalls ?? []).filter((item) => item.id !== toolCall.id),
+        toolCall
+      ]
+    : run.result.toolCalls;
+  const nextApiExchanges = apiExchange
+    ? [
+        ...(run.result.apiExchanges ?? []).filter(
+          (item) => item.id !== apiExchange.id
+        ),
+        apiExchange
+      ]
+    : run.result.apiExchanges;
+
   run.result = {
     ...run.result,
-    ...extractResult(event)
+    ...extractResult(event),
+    toolCalls: nextToolCalls,
+    apiExchanges: nextApiExchanges
   };
 
   store.runs.set(event.runId, run);

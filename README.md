@@ -32,14 +32,45 @@ Open [http://localhost:3000](http://localhost:3000), then click:
 The demo starts three real local services:
 
 ```text
-Studio:          http://localhost:3000
-Sample EHR API: http://localhost:4001
-Sample Payer:   http://localhost:4002
++--------------------------------------------------------------+
+| PriorAuth Passport Demo                                      |
++--------------------------------------------------------------+
+| EHR API    http://localhost:4001     healthy                 |
+| Payer API  http://localhost:4002     healthy                 |
+| Studio     http://localhost:3000     healthy                 |
++--------------------------------------------------------------+
 ```
 
 The UI streams each step through server-sent events: patient fetch, condition
 fetch, medication fetch, observation fetch, document fetch, payer requirements,
-evidence matching, package build, payer submission, ROI, and audit.
+evidence matching, package build, payer submission, ROI, and audit. Every step
+also emits a visible tool call and API exchange so the operator can see exactly
+where data is being fetched or ingested.
+
+You can also trigger the same workflow from the CLI while Studio updates live:
+
+```bash
+pnpm run doctor
+pnpm priorauth submit --case pa-case-001
+pnpm priorauth submit --case pa-case-001 --scenario incomplete
+```
+
+## Studio Surfaces
+
+```text
+1. Overview
+2. Prior Auth Inbox
+3. Live Workflow
+4. ROI Calculator
+5. Evidence & Requirements
+6. Audit Ledger
+7. Developer Mode
+8. Settings
+```
+
+The Live Workflow tab shows the timeline, tool calls, and request/response
+inspector. The Audit Ledger tab shows API counters plus copy/download audit
+packet controls. Developer Mode shows install, CLI, and SDK usage.
 
 ## What the demo proves
 
@@ -116,8 +147,8 @@ pnpm lint
 pnpm test
 pnpm e2e
 pnpm verify
-pnpm --filter @priorauth/passport-cli dev doctor
-pnpm --filter @priorauth/passport-cli dev submit
+pnpm run doctor
+pnpm priorauth submit
 ```
 
 ## Safety Boundary

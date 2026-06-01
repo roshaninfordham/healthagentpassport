@@ -3,7 +3,8 @@
   "version": "0.1.0",
   "type": "module",
   "bin": {
-    "priorauth": "./dist/index.js"
+    "priorauth": "./dist/index.js",
+    "priorauth-passport": "./dist/index.js"
   },
   "scripts": {
     "build": "tsup src/index.ts --format esm --dts --clean",

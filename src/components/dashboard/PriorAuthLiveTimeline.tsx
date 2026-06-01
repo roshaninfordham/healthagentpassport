@@ -41,7 +41,7 @@ export function PriorAuthLiveTimeline({ events, loading }: Props) {
   const visibleEvents = events.slice(-18).reverse();
 
   return (
-    <section className="glass-panel rounded-lg p-5">
+    <section className="glass-panel min-w-0 rounded-lg p-5">
       <div className="flex items-center justify-between gap-3">
         <div>
           <p className="text-xs font-medium uppercase text-slate-300">
@@ -83,6 +83,18 @@ export function PriorAuthLiveTimeline({ events, loading }: Props) {
                     {new Date(event.timestamp).toLocaleTimeString()}{" "}
                     {event.durationMs ? ` / ${event.durationMs} ms` : ""}
                   </p>
+                  {typeof event.details?.summary === "string" ? (
+                    <p className="mt-2 text-sm leading-6 text-slate-200">
+                      {event.details.summary}
+                    </p>
+                  ) : null}
+                  {event.details?.apiExchange &&
+                  typeof event.details.apiExchange === "object" ? (
+                    <div className="mt-2 rounded-md border border-white/10 bg-black/20 px-3 py-2 font-mono text-[11px] leading-5 text-cyan-100">
+                      {(event.details.apiExchange as { method?: string }).method}{" "}
+                      {(event.details.apiExchange as { url?: string }).url}
+                    </div>
+                  ) : null}
                 </div>
               </div>
             </div>
