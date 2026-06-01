@@ -1,14 +1,70 @@
 # HealthAgent Passport
 
-HealthAgent Passport is a deterministic, full-stack demo of an agent identity,
-patient consent, behavioral sandbox, trust routing, payment receipt, and audit
-gateway for healthcare APIs.
+HealthAgent Passport is an installable agent firewall for healthcare APIs.
 
-The core demo works without external API keys. Valiron, Solana, payments,
-OpenAI, Docker, and gVisor are feature-flagged and default to safe mock mode.
+A health API developer puts it in front of a FHIR, payer, pharmacy, or
+prior-auth API. AI agents call the gateway, not the API. The gateway verifies
+agent identity, patient-scoped consent, sandbox behavior, trust route, payment,
+and audit evidence before forwarding approved requests upstream.
 
 > We are not building an AI doctor. We are building infrastructure that makes
 > healthcare APIs safer for AI agents.
+
+## Quickstart
+
+```bash
+git clone https://github.com/roshaninfordham/healthagentpassport.git
+cd healthagentpassport
+pnpm install
+pnpm demo
+```
+
+Open:
+
+```txt
+http://localhost:3000
+```
+
+The demo starts three services:
+
+```txt
+Sample health API:        http://localhost:4001
+HealthAgent gateway:      http://localhost:8787
+Studio control plane:     http://localhost:3000
+```
+
+## Protect Your Own API
+
+```bash
+npx healthagent init
+npx healthagent gateway \
+  --policy ./healthagent.yaml \
+  --upstream http://localhost:4001 \
+  --port 8787 \
+  --studio http://localhost:3000
+```
+
+Then send agent traffic to the gateway:
+
+```bash
+npx healthagent agent run trusted --gateway http://localhost:8787
+npx healthagent agent run attack --gateway http://localhost:8787
+```
+
+SDK usage:
+
+```ts
+import { createGateway } from "@healthagent/passport";
+
+const gateway = createGateway({
+  policyFile: "./healthagent.yaml",
+  upstream: "http://localhost:4001",
+  studio: "http://localhost:3000",
+  demoDelayMs: 650
+});
+
+gateway.listen(8787);
+```
 
 ## What The Demo Proves
 
@@ -16,16 +72,16 @@ Two AI agents attempt to access the same protected healthcare workflow:
 
 - `TrustedCareAgent` has a valid identity signature, active patient delegation,
   correct scopes, clean sandbox behavior, high trust, protected synthetic FHIR
-  access, prior authorization output, and audit events.
+  access through the gateway, prior authorization output, and audit events.
 - `SketchyScraperAgent` has a valid agent key but missing patient delegation,
   low trust, suspicious sandbox behavior, an attempted bulk FHIR dump path, and
-  a denial before protected data access.
+  a denial before the upstream API is called.
 
 The central product moment:
 
 ```txt
-Trusted agent: allowed.
-Low-trust or suspicious agent: blocked before touching the health API.
+Trusted agent: forwarded to the real sample upstream API.
+Low-trust or suspicious agent: blocked before touching upstream.
 ```
 
 ## Market Positioning
@@ -54,15 +110,17 @@ HealthAgent Passport knows healthcare permission.
 
 ```mermaid
 flowchart LR
-  Agent[AI Agent] -->|signed request| Gateway[HealthAgent Passport Gateway]
-  Gateway --> Identity[Identity Verification]
+  Agent[AI Agent] -->|signed HTTP request| Gateway[HealthAgent Passport Gateway]
+  Gateway --> Policy[healthagent.yaml Policy]
+  Policy --> Identity[Identity Verification]
   Identity --> Replay[Timestamp + Nonce Replay Protection]
   Replay --> Sandbox[Behavioral Sandbox]
   Sandbox --> Consent[Patient Delegation + Scope Check]
   Consent --> Trust[Trust Scoring + Route Decision]
   Trust --> Payment[Mock x402 / MPP Receipt]
-  Payment --> API[Protected Synthetic FHIR + Prior Auth APIs]
-  Trust --> Audit[Compliance Audit Ledger]
+  Payment --> API[Real Sample FHIR + Prior Auth Upstream]
+  Gateway --> Stream[Live Studio Event Stream]
+  Trust --> Audit[Audit Evidence]
   API --> Audit
 
   Sandbox -. optional .-> Gvisor[gVisor runsc / Docker]
@@ -148,40 +206,17 @@ flowchart TB
   Core --> Data
 ```
 
-## Quick Start
-
-Requirements:
-
-- Node.js 20 or newer
-- pnpm
-
-Run:
-
-```bash
-pnpm install
-pnpm db:push
-pnpm db:seed
-pnpm dev
-```
-
-Open the URL printed by Next.js. The default is:
-
-```txt
-http://localhost:3000
-```
-
-If port `3000` is already in use, Next.js will select another port, such as
-`3001`.
-
 ## Demo Buttons
 
 1. Click `Run TrustedCareAgent`.
-2. Confirm the UI shows `ACCESS GRANTED`.
-3. Confirm the route is `prod`, the sandbox verdict is `CLEAN risk 4/100`, and
-   audit rows are written.
+2. Confirm the UI streams signature, nonce, sandbox, consent, scope, trust,
+   payment, upstream fetch, hash, audit, and response steps.
+3. Confirm the UI shows `ACCESS GRANTED`, route `prod`, and upstream calls for
+   `GET /fhir/patient/maya-001` and `POST /prior-auth`.
 4. Click `Run SketchyScraperAgent`.
-5. Confirm the UI shows `ACCESS DENIED`, route `sandbox_only`, `BLOCK risk
-   100/100`, and `Protected API not called`.
+5. Confirm the UI shows `ACCESS DENIED`, route `sandbox_only`, and `Upstream API
+   was NOT called`.
+6. Confirm `Bulk dump hits` stays `0`.
 
 ## Verification
 
@@ -224,22 +259,27 @@ External integrations are optional:
 src/app/                  Next.js pages and API route handlers
 src/components/dashboard/ Dashboard UI components
 src/lib/                  Gateway, trust, consent, sandbox, crypto, services
+packages/passport/        TypeScript SDK and reverse-proxy gateway
+packages/cli/             healthagent CLI
+apps/sample-health-api/   Real local upstream API protected by the gateway
 src/tests/                Unit tests
 tests/                    Playwright e2e test
 prisma/                   SQLite schema and seed data
 sandbox/                  Optional Docker/gVisor scenario runner
-docs/                     Architecture, security, API, demo, and gVisor docs
+docs/                     Quickstart, architecture, security, API, demo docs
 ```
 
 ## Documentation
 
 - [Documentation Index](docs/README.md)
+- [Developer Quickstart](docs/quickstart.md)
 - [System Architecture](docs/architecture.md)
 - [Market Positioning](docs/market-positioning.md)
 - [API Reference](docs/api-reference.md)
 - [Security Model](docs/security-model.md)
 - [Demo Guide](docs/demo-guide.md)
 - [gVisor Setup](docs/gvisor-setup.md)
+- [Rust Gateway Roadmap](docs/rust-roadmap.md)
 
 ## Safety Boundaries
 

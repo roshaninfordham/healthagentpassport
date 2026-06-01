@@ -1,0 +1,23 @@
+{
+  "name": "@healthagent/passport-cli",
+  "version": "0.1.0",
+  "type": "module",
+  "bin": {
+    "healthagent": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsup src/index.ts --format esm --dts --clean",
+    "dev": "tsx src/index.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "echo \"@healthagent/passport-cli: no package tests yet\""
+  },
+  "dependencies": {
+    "@healthagent/passport": "workspace:*",
+    "commander": "^14.0.2"
+  },
+  "devDependencies": {
+    "tsup": "^8.5.1",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3"
+  }
+}

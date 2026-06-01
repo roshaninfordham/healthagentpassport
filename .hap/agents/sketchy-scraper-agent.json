@@ -1,0 +1,13 @@
+{
+  "id": "sketchy-scraper-agent",
+  "name": "SketchyScraperAgent",
+  "publicKeyPem": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEAJaO+h4sqXoi5eRc3gyNzPgL9heIY1fKh83mlvXY+w+M=\n-----END PUBLIC KEY-----\n",
+  "privateKeyPem": "-----BEGIN PRIVATE KEY-----\nMC4CAQAwBQYDK2VwBCIEIIwRjhtd/v/NihoYBS9Oiah0js7Hv01YJLiNmkReEjXH\n-----END PRIVATE KEY-----\n",
+  "trust": {
+    "identityScore": 50,
+    "onChainScore": 12,
+    "behaviorScore": 18,
+    "complianceScore": 10,
+    "defaultTier": "C"
+  }
+}

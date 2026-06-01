@@ -1,0 +1,13 @@
+{
+  "id": "trusted-care-agent",
+  "name": "TrustedCareAgent",
+  "publicKeyPem": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEAVOX9VMAcSY0sLPbpG0qFC/drUy+do3ooGEO0+6szvwI=\n-----END PUBLIC KEY-----\n",
+  "privateKeyPem": "-----BEGIN PRIVATE KEY-----\nMC4CAQAwBQYDK2VwBCIEIH/j395kQn2CZfM8sHesK+3aHoDCyfK/guWLlYy8j5Ym\n-----END PRIVATE KEY-----\n",
+  "trust": {
+    "identityScore": 100,
+    "onChainScore": 94,
+    "behaviorScore": 97,
+    "complianceScore": 96,
+    "defaultTier": "AAA"
+  }
+}

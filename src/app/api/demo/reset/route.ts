@@ -1,5 +1,6 @@
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
+import { clearRuns } from "@/lib/live-events";
 
 export const runtime = "nodejs";
 
@@ -23,6 +24,11 @@ export async function POST(request: Request) {
     timeout: 60_000,
     maxBuffer: 1024 * 1024
   });
+
+  clearRuns();
+  await fetch("http://localhost:4001/stats/reset", { method: "POST" }).catch(
+    () => null
+  );
 
   return Response.json({ ok: true });
 }

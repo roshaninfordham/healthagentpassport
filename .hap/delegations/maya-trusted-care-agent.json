@@ -1,0 +1,17 @@
+{
+  "version": "healthagent-passport/v1",
+  "patientId": "maya-001",
+  "agentId": "trusted-care-agent",
+  "scopes": [
+    "patient/Patient.read",
+    "patient/Condition.read",
+    "patient/MedicationRequest.read",
+    "patient/Observation.read",
+    "payer/PriorAuth.write"
+  ],
+  "purpose": "care-admin-prior-auth-demo",
+  "expiresAt": "2030-01-01T00:00:00.000Z",
+  "status": "active",
+  "delegationHash": "46067e0089f046e94ece319535be918ff4de9dc8e6ef2c1060d8cccb01411e93",
+  "solanaSignature": "mock-solana-anchor-46067e0089f046e9"
+}

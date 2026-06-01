@@ -5,32 +5,37 @@ demo operations for HealthAgent Passport.
 
 ## Reading Path
 
-1. [System Architecture](architecture.md) explains the end-to-end design with
+1. [Developer Quickstart](quickstart.md) shows the CLI, SDK, gateway, sample
+   API, and Studio demo path.
+2. [System Architecture](architecture.md) explains the end-to-end design with
    Mermaid diagrams.
-2. [Market Positioning](market-positioning.md) explains where HealthAgent
+3. [Market Positioning](market-positioning.md) explains where HealthAgent
    Passport fits beside identity providers, agent trust rails, API gateways,
    and healthcare APIs.
-3. [API Reference](api-reference.md) documents the route handlers and request
+4. [API Reference](api-reference.md) documents the route handlers and request
    payloads.
-4. [Security Model](security-model.md) maps controls to the agentic healthcare
+5. [Security Model](security-model.md) maps controls to the agentic healthcare
    threat model.
-5. [Demo Guide](demo-guide.md) gives the live demo script, checklist, and
+6. [Demo Guide](demo-guide.md) gives the live demo script, checklist, and
    troubleshooting steps.
-6. [gVisor Setup](gvisor-setup.md) explains the optional real sandbox runtime.
+7. [gVisor Setup](gvisor-setup.md) explains the optional real sandbox runtime.
+8. [Rust Gateway Roadmap](rust-roadmap.md) explains what would move into a
+   high-performance production data plane later.
 
 ## Product In One Diagram
 
 ```mermaid
 flowchart LR
-  A[AI Agent] --> B[Identity]
-  B --> C[Replay Protection]
+  A[AI Agent] --> B[HealthAgent Gateway]
+  B --> C[Identity + Replay Protection]
   C --> D[Behavior Sandbox]
-  D --> E[Patient Consent]
-  E --> F[Trust Route]
+  D --> E[Patient Consent + FHIR Scopes]
+  E --> F[Trust Route + Payment Receipt]
   F --> G{Route}
-  G -->|prod / prod_throttled| H[Protected Healthcare API]
-  G -->|sandbox / sandbox_only| I[Redact or Deny]
-  H --> J[Audit Ledger]
+  G -->|prod / prod_throttled| H[Real Sample Health API]
+  G -->|sandbox / sandbox_only| I[Block Before Upstream]
+  B --> S[Studio Live Event Stream]
+  H --> J[Audit Evidence]
   I --> J
 ```
 

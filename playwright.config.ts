@@ -8,7 +8,8 @@ export default defineConfig({
     trace: "on-first-retry"
   },
   webServer: {
-    command: "pnpm exec next dev -p 3100",
+    command:
+      "pnpm exec concurrently -n API,GATEWAY,STUDIO -c blue,green,magenta \"PORT=4101 pnpm --filter sample-health-api dev\" \"pnpm --filter @healthagent/passport-cli dev gateway --policy ./healthagent.yaml --upstream http://localhost:4101 --port 8877 --studio http://localhost:3100 --demo-delay 10\" \"GATEWAY_URL=http://localhost:8877 SAMPLE_API_URL=http://localhost:4101/health SAMPLE_API_STATS_URL=http://localhost:4101/stats pnpm exec next dev -p 3100\"",
     url: "http://localhost:3100",
     reuseExistingServer: true,
     timeout: 120_000

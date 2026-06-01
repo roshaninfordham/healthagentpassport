@@ -4,10 +4,10 @@ import { motion } from "framer-motion";
 import { Activity, Database, ShieldCheck, Sparkles } from "lucide-react";
 
 const statusPills = [
-  "Valiron mock route engine",
-  "Solana mock consent anchor",
-  "Payment mock x402/MPP receipt",
-  "LLM deterministic summary",
+  "CLI gateway",
+  "TypeScript SDK",
+  "Sample FHIR API",
+  "Live event stream",
   "Synthetic data only"
 ];
 
@@ -24,7 +24,7 @@ export function Hero() {
           <div className="mb-4 flex flex-wrap gap-2 text-xs font-medium uppercase text-slate-300">
             <span className="inline-flex items-center gap-2 rounded-md border border-emerald-400/30 bg-emerald-400/10 px-3 py-1 text-emerald-100">
               <ShieldCheck className="h-3.5 w-3.5" />
-              Agent firewall for healthcare APIs
+              Installable gateway for healthcare APIs
             </span>
             <span className="rounded-md border border-cyan-400/30 bg-cyan-400/10 px-3 py-1 text-cyan-100">
               No PHI
@@ -37,23 +37,24 @@ export function Hero() {
             HealthAgent Passport
           </h1>
           <p className="mt-3 max-w-3xl text-base leading-7 text-slate-300 sm:text-lg">
-            Agent identity, patient consent, behavioral sandboxing, trust
-            routing, payment receipts, and audit controls for healthcare APIs.
+            Installable agent firewall for FHIR, payer, pharmacy, and
+            prior-auth APIs. Agents call the gateway, not the API; only
+            approved requests reach upstream.
           </p>
         </div>
 
         <div className="grid min-w-[260px] gap-2 text-sm text-slate-300">
           <div className="flex items-center gap-2 text-slate-100">
             <Activity className="h-4 w-4 text-emerald-300" />
-            Demo mode: deterministic
+            Gateway mode: enforce
           </div>
           <div className="flex items-center gap-2 text-slate-100">
             <Database className="h-4 w-4 text-cyan-300" />
-            Synthetic FHIR bundle
+            Protected upstream on :4001
           </div>
           <div className="flex items-center gap-2 text-slate-100">
             <Sparkles className="h-4 w-4 text-amber-300" />
-            Sponsor rails ready
+            Studio control plane
           </div>
         </div>
       </div>

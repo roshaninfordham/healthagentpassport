@@ -1,8 +1,36 @@
 # System Architecture
 
-HealthAgent Passport is a single full-stack Next.js app designed for a reliable
-demo and a clear production roadmap. The core behavior is deterministic in mock
-mode, while external integrations are kept behind feature flags.
+HealthAgent Passport is an installable gateway and SDK with a Studio control
+plane. The repo keeps the polished Next.js Studio at the root for the hackathon
+demo, and adds a TypeScript SDK, CLI gateway, and real sample health API around
+it.
+
+## Repository Product Shape
+
+```mermaid
+flowchart TB
+  subgraph Packages["Installable packages"]
+    SDK["@healthagent/passport<br/>SDK + gateway engine"]
+    CLI["@healthagent/passport-cli<br/>healthagent command"]
+  end
+
+  subgraph Apps["Runnable apps"]
+    Studio["Studio dashboard<br/>Next.js"]
+    Sample["Sample health API<br/>Fastify :4001"]
+    Gateway["Gateway proxy<br/>Fastify :8787"]
+  end
+
+  Policy[healthagent.yaml]
+  Hap[".hap agents + delegations"]
+
+  CLI --> Gateway
+  SDK --> Gateway
+  Policy --> Gateway
+  Hap --> Gateway
+  Gateway --> Sample
+  Gateway -->|POST /api/events/ingest| Studio
+  Studio -->|EventSource /api/events/stream| Studio
+```
 
 ## High-Level Architecture
 
@@ -13,24 +41,25 @@ flowchart TB
     Sketchy[SketchyScraperAgent]
   end
 
-  subgraph App["Next.js App Router"]
+  subgraph App["Studio Next.js App Router"]
     UI[Dashboard UI]
-    AgentAPI["/api/agent/run"]
-    GatewayAPI["/api/gateway"]
+    DemoRun["/api/demo/run"]
+    EventIngest["/api/events/ingest"]
+    EventStream["/api/events/stream"]
+    Runs["/api/runs/:runId/events"]
     SandboxAPI["/api/sandbox/run"]
     AuditAPI["/api/audit"]
   end
 
-  subgraph Domain["Domain Layer"]
-    Runner[Agent Runner]
+  subgraph GatewayPkg["@healthagent/passport Gateway"]
+    Proxy[Fastify Reverse Proxy]
     Crypto[Signature + Hashing]
-    Consent[Consent Engine]
-    Policy[Policy Engine]
+    Consent[.hap Delegation Loader]
+    PolicyEngine[healthagent.yaml Policy Engine]
     Trust[Trust Engine]
     Sandbox[Behavior Sandbox]
-    FHIR[Synthetic FHIR Service]
-    PriorAuth[Prior Auth Mock]
-    Summary[Safe Summary]
+    Upstream[Upstream Fetch]
+    AuditEvidence[Audit Hashes]
   end
 
   subgraph Store["SQLite via Prisma"]
@@ -44,24 +73,22 @@ flowchart TB
 
   Trusted --> UI
   Sketchy --> UI
-  UI --> AgentAPI
-  AgentAPI --> Runner
-  Runner --> Sandbox
-  Runner --> GatewayAPI
-  GatewayAPI --> Crypto
-  GatewayAPI --> Policy
-  GatewayAPI --> Consent
-  GatewayAPI --> Trust
-  GatewayAPI --> FHIR
-  GatewayAPI --> PriorAuth
-  Runner --> Summary
+  UI --> DemoRun
+  DemoRun --> Proxy
+  Proxy --> Crypto
+  Proxy --> PolicyEngine
+  Proxy --> Sandbox
+  Proxy --> Consent
+  Proxy --> Trust
+  Proxy --> Upstream
+  Proxy --> AuditEvidence
+  Proxy --> EventIngest
+  EventIngest --> EventStream
+  EventStream --> UI
   Crypto --> Store
   Consent --> Store
   Trust --> Store
   Sandbox --> Store
-  FHIR --> Store
-  PriorAuth --> Store
-  GatewayAPI --> E
   AuditAPI --> E
 ```
 
@@ -91,39 +118,37 @@ flowchart TD
 
 ```mermaid
 sequenceDiagram
-  participant Agent as Agent Runner
-  participant Sandbox as Sandbox Runner
-  participant Gateway as Gateway
+  participant Agent as AI Agent / CLI
+  participant Gateway as Gateway Proxy
+  participant Studio as Studio Event Stream
   participant Crypto as Crypto Module
-  participant Policy as Policy Engine
+  participant Policy as healthagent.yaml
+  participant Sandbox as Behavioral Sandbox
   participant Consent as Consent Engine
   participant Trust as Trust Engine
-  participant Upstream as Protected API
-  participant Audit as AuditEvent Table
+  participant Upstream as Sample Health API
+  participant Audit as Audit Evidence
 
-  Agent->>Sandbox: runAgentSandbox(agent scenario)
-  Sandbox-->>Agent: SandboxReport
-  Agent->>Crypto: sign(method, path, body, timestamp, nonce)
-  Agent->>Gateway: signed GatewayInput + SandboxReport
+  Agent->>Gateway: signed HTTP request to :8787
+  Gateway->>Studio: receive_request event
+  Gateway->>Policy: load and match route
+  Gateway->>Studio: parse_policy + match_route_policy events
   Gateway->>Crypto: verify public-key signature
   Gateway->>Gateway: reject replayed nonce
-  Gateway->>Policy: find endpoint policy
-  alt Unknown endpoint
-    Gateway->>Trust: evaluate known identity + sandbox downgrade
-    Gateway->>Audit: write deny event
+  Gateway->>Sandbox: run deterministic mock sandbox
+  Gateway->>Consent: load .hap delegation and scopes
+  Gateway->>Trust: compute score and route
+  Gateway->>Studio: live step events
+  alt Allowed
+    Gateway->>Upstream: forward request to :4001
+    Upstream-->>Gateway: synthetic FHIR / prior-auth response
+    Gateway->>Audit: hash request + response
+    Gateway->>Studio: upstream + audit + return_response events
+    Gateway-->>Agent: HTTP 200 with upstream response
+  else Denied
+    Gateway->>Audit: hash denied request
+    Gateway->>Studio: blocked before upstream event
     Gateway-->>Agent: 403 deny
-  else Known endpoint
-    Gateway->>Consent: check delegation and scopes
-    Gateway->>Trust: compute score and route
-    alt route allows production and consent valid
-      Gateway->>Upstream: call synthetic FHIR or prior-auth
-      Upstream-->>Gateway: synthetic response
-      Gateway->>Audit: write allow event
-      Gateway-->>Agent: 200 allow
-    else route or consent fails
-      Gateway->>Audit: write deny/sandbox event
-      Gateway-->>Agent: 403 deny or sandbox
-    end
   end
 ```
 
