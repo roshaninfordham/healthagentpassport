@@ -40,13 +40,13 @@ gantt
 
 ```mermaid
 flowchart LR
-  Studio[Studio] --> Api[PriorAuth API]
-  Api --> Worker[Workflow worker]
-  Worker --> FHIR[FHIR connector]
-  Worker --> Payer[Payer adapter]
-  Worker --> Policy[Policy service]
-  Worker --> Store[(Run + audit DB)]
-  Worker --> Queue[(Event queue)]
+  Studio["Studio"] --> Api["PriorAuth API"]
+  Api --> Worker["Workflow worker"]
+  Worker --> FHIR["FHIR connector"]
+  Worker --> Payer["Payer adapter"]
+  Worker --> Policy["Policy service"]
+  Worker --> Store["Run and audit database"]
+  Worker --> Queue["Event queue"]
   Queue --> Studio
 ```
 

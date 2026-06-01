@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { DeveloperModePanel } from "@/components/dashboard/DeveloperModePanel";
-import { Hero } from "@/components/dashboard/Hero";
+import { LandingPageExplainer } from "@/components/dashboard/LandingPageExplainer";
 import { ManualVsElectronicPanel } from "@/components/dashboard/ManualVsElectronicPanel";
 import { MarketBenchmarksPanel } from "@/components/dashboard/MarketBenchmarksPanel";
 import { MarketPainPanel } from "@/components/dashboard/MarketPainPanel";
@@ -149,6 +149,12 @@ export default function Home() {
 
   async function runScenario(scenario: Scenario) {
     setActiveTab("workflow");
+    window.requestAnimationFrame(() => {
+      document.getElementById("studio")?.scrollIntoView({
+        behavior: "smooth",
+        block: "start"
+      });
+    });
     setLoading(scenario);
     currentRunIdRef.current = null;
     setCurrentRunId(null);
@@ -210,16 +216,29 @@ export default function Home() {
     }
   }
 
+  function openStudio(tab: Tab = "overview") {
+    setActiveTab(tab);
+    window.requestAnimationFrame(() => {
+      document.getElementById("studio")?.scrollIntoView({
+        behavior: "smooth",
+        block: "start"
+      });
+    });
+  }
+
   return (
     <main className="min-h-screen text-slate-50">
       <div className="mx-auto flex max-w-7xl flex-col gap-5 px-4 py-5 sm:px-6 lg:px-8">
-        <Hero
+        <LandingPageExplainer
           loading={loading}
           onRun={runScenario}
-          onDeveloperMode={() => setActiveTab("developer")}
+          onDeveloperMode={() => openStudio("developer")}
         />
 
-        <nav className="glass-panel sticky top-3 z-10 flex gap-2 overflow-auto rounded-lg p-2">
+        <nav
+          id="studio"
+          className="glass-panel sticky top-3 z-10 flex scroll-mt-3 gap-2 overflow-auto rounded-lg p-2"
+        >
           {tabs.map((tab) => (
             <button
               key={tab.id}

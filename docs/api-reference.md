@@ -6,13 +6,27 @@ All APIs are local demo APIs and use synthetic data only.
 
 ```mermaid
 flowchart LR
-  UI[Studio UI] --> Run["POST /api/demo/run"]
+  UI["Studio UI"] --> Run["POST /api/demo/run"]
   UI --> Reset["POST /api/demo/reset"]
   UI --> Stream["GET /api/events/stream"]
   UI --> Status["GET /api/services/status"]
   UI --> Stats["GET /api/upstream/stats"]
-  Run --> EHR[Sample EHR API]
-  Run --> Payer[Sample Payer API]
+  Run --> EHR["Sample EHR API"]
+  Run --> Payer["Sample payer API"]
+```
+
+## API Lifecycle
+
+```mermaid
+flowchart TD
+  Start["Operator starts a run"] --> RunApi["POST /api/demo/run"]
+  RunApi --> Events["GET /api/events/stream"]
+  Events --> ToolCalls["Visible tool calls"]
+  Events --> ApiCalls["Visible API exchanges"]
+  ApiCalls --> EHR["EHR reads"]
+  ApiCalls --> Payer["Payer requirements and submission"]
+  ToolCalls --> Result["Complete or blocked result"]
+  Payer --> Result
 ```
 
 ### `POST /api/demo/run`

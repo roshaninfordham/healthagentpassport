@@ -6,21 +6,35 @@ test("runs complete and incomplete electronic prior-auth demo cases", async ({
   await page.goto("/");
 
   await expect(
-    page.getByRole("heading", { name: /priorauth passport/i })
+    page.getByRole("heading", { name: "PriorAuth Passport", exact: true })
   ).toBeVisible();
   await expect(
-    page.getByText(/Real-time electronic prior authorization infrastructure/i)
+    page.getByText("AI-powered electronic prior authorization agent.", {
+      exact: true
+    })
   ).toBeVisible();
   await expect(
-    page.getByText("$5.18 transaction delta", { exact: true })
+    page.getByText("Manual Bottlenecks", { exact: true })
   ).toBeVisible();
-  await expect(page.getByText(/Discover payer requirements/i)).toBeVisible();
+  await expect(
+    page.getByText("Automated Agent", { exact: true })
+  ).toBeVisible();
+  await expect(
+    page.getByText("Quantifiable Savings", { exact: true })
+  ).toBeVisible();
+  await expect(page.getByText("$5.18", { exact: true })).toBeVisible();
+  await expect(
+    page.getByText("Patient Service Request: CPT 93306", { exact: true })
+  ).toBeVisible();
+  await expect(
+    page.getByText(/PriorAuth Passport is an autonomous ePA platform/i)
+  ).toBeVisible();
   await page.getByRole("button", { name: /prior auth inbox/i }).click();
   await expect(
     page.getByRole("heading", { name: /prior authorization inbox/i })
   ).toBeVisible();
 
-  await page.getByRole("button", { name: /run complete epa case/i }).click();
+  await page.getByRole("button", { name: /run epa/i }).click();
   await expect(page.getByText(/Electronic prior authorization workflow complete/i)).toBeVisible({
     timeout: 30_000
   });
@@ -36,7 +50,8 @@ test("runs complete and incomplete electronic prior-auth demo cases", async ({
   await expect(page.getByText(/Submissions/i)).toBeVisible();
   await expect(page.getByRole("button", { name: /copy audit json/i })).toBeVisible();
 
-  await page.getByRole("button", { name: /run incomplete documentation case/i }).click();
+  await page.getByRole("button", { name: /prior auth inbox/i }).click();
+  await page.getByRole("button", { name: /check evidence/i }).click();
   await expect(
     page.getByText(/Missing evidence detected\. Draft saved/i)
   ).toBeVisible({ timeout: 30_000 });

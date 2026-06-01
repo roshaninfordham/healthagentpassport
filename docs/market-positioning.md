@@ -8,12 +8,12 @@ clinical decision engine.
 
 ```mermaid
 flowchart LR
-  Practice[Provider practice] --> Intake[Prior-auth intake]
-  Intake --> Passport[PriorAuth Passport]
-  Passport --> EHR[EHR evidence]
-  Passport --> Payer[Payer requirements + submission]
-  Passport --> ROI[ROI proof]
-  Passport --> Audit[Audit evidence]
+  Practice["Provider practice"] --> Intake["Prior-auth intake"]
+  Intake --> Passport["PriorAuth Passport"]
+  Passport --> EHR["EHR evidence"]
+  Passport --> Payer["Payer requirements and submission"]
+  Passport --> ROI["ROI proof"]
+  Passport --> Audit["Audit evidence"]
 ```
 
 The wedge is narrow and demoable: prove administrative savings by turning a
@@ -46,12 +46,12 @@ requirements, evidence matching, electronic submission, and event-level audit.
 
 ```mermaid
 flowchart TD
-  Manual[$10.97 manual transaction] --> Delta[$5.18 transaction delta]
-  Electronic[$5.79 electronic transaction] --> Delta
-  ManualTime[16 manual minutes] --> Time[7 baseline minutes saved]
-  ElectronicTime[9 electronic minutes] --> Time
-  Delta --> Claim[Default ROI claim]
-  Time --> Sensitivity[Separate labor sensitivity]
+  Manual["10.97 dollars manual transaction"] --> Delta["5.18 dollars transaction delta"]
+  Electronic["5.79 dollars electronic transaction"] --> Delta
+  ManualTime["16 manual minutes"] --> Time["7 baseline minutes saved"]
+  ElectronicTime["9 electronic minutes"] --> Time
+  Delta --> Claim["Default ROI claim"]
+  Time --> Sensitivity["Separate labor sensitivity"]
 ```
 
 The product should lead with the default transaction delta and then let users

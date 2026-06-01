@@ -24,6 +24,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "e2e": "playwright test",
+    "docs:diagrams": "node scripts/extract-mermaid.mjs README.md docs/*.md",
+    "docs:diagrams:render": "pnpm docs:diagrams && node scripts/render-mermaid.mjs",
     "verify": "pnpm typecheck && pnpm lint && pnpm test && pnpm build && pnpm --filter @priorauth/passport-core build && pnpm --filter @priorauth/passport-cli build && pnpm --filter sample-ehr-api build && pnpm --filter sample-payer-api build"
   },
   "dependencies": {

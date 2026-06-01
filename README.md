@@ -58,19 +58,22 @@ pnpm priorauth submit --case pa-case-001 --scenario incomplete
 ## Studio Surfaces
 
 ```text
-1. Overview
-2. Prior Auth Inbox
-3. Live Workflow
-4. ROI Calculator
-5. Evidence & Requirements
-6. Audit Ledger
-7. Developer Mode
-8. Settings
+1. Landing explainer
+2. Overview
+3. Prior Auth Inbox
+4. Live Workflow
+5. ROI Calculator
+6. Evidence & Requirements
+7. Audit Ledger
+8. Developer Mode
+9. Settings
 ```
 
-The Live Workflow tab shows the timeline, tool calls, and request/response
-inspector. The Audit Ledger tab shows API counters plus copy/download audit
-packet controls. Developer Mode shows install, CLI, and SDK usage.
+The landing explainer states the plain-English problem, solution, impact, and
+how the workflow runs. The Live Workflow tab shows the timeline, tool calls, and
+request/response inspector. The Audit Ledger tab shows API counters plus
+copy/download audit packet controls. Developer Mode shows install, CLI, and SDK
+usage.
 
 ## What the demo proves
 
@@ -87,14 +90,26 @@ ROI.
 
 ```mermaid
 flowchart LR
-  User[Practice operator or API developer] --> Studio[PriorAuth Studio<br/>Next.js :3000]
-  Studio --> Runner[Electronic PA runner<br/>SSE event source]
-  Runner --> Core[@priorauth/passport-core<br/>ROI + evidence + audit]
-  Runner --> EHR[Sample EHR API<br/>Fastify :4001]
-  Runner --> Payer[Sample Payer API<br/>Fastify :4002]
-  Core --> Config[config/roi.yaml<br/>priorauth-policy.yaml<br/>payer-rules.yaml]
-  Runner --> Audit[Audit hash event]
+  User["Practice operator or API developer"] --> Studio["PriorAuth Studio"]
+  Studio --> Runner["Electronic PA runner"]
+  Runner --> Core["PriorAuth core SDK"]
+  Runner --> EHR["Sample EHR API"]
+  Runner --> Payer["Sample payer API"]
+  Core --> Config["ROI, policy, and payer rules"]
+  Runner --> Audit["Audit hash event"]
   Audit --> Studio
+```
+
+## Problem to Impact
+
+```mermaid
+flowchart LR
+  Manual["Manual portals, calls, and faxes"] --> Delay["Delayed staff work"]
+  Delay --> Evidence["Missing or scattered evidence"]
+  Evidence --> Agent["PriorAuth Passport agent"]
+  Agent --> Package["Complete evidence package"]
+  Package --> Submit["Synthetic payer submission"]
+  Submit --> Impact["5.18 dollars saved per authorization"]
 ```
 
 ## Realtime Flow
@@ -147,6 +162,7 @@ pnpm lint
 pnpm test
 pnpm e2e
 pnpm verify
+pnpm docs:diagrams:render
 pnpm run doctor
 pnpm priorauth submit
 ```

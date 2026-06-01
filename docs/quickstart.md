@@ -34,9 +34,9 @@ The terminal waits for the real services and prints a readiness box:
 
 ```mermaid
 flowchart LR
-  Demo[pnpm demo] --> EHR[Sample EHR API<br/>:4001]
-  Demo --> Payer[Sample Payer API<br/>:4002]
-  Demo --> Studio[PriorAuth Studio<br/>:3000]
+  Demo["pnpm demo"] --> EHR["Sample EHR API on port 4001"]
+  Demo --> Payer["Sample payer API on port 4002"]
+  Demo --> Studio["PriorAuth Studio on port 3000"]
 ```
 
 ## Try Both Cases

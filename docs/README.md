@@ -19,13 +19,13 @@ boundary, market position, and production roadmap.
 
 ```mermaid
 flowchart TD
-  Readme[README.md] --> Quickstart[Quickstart]
-  Quickstart --> Demo[Demo Guide]
-  Demo --> Architecture[Architecture]
-  Architecture --> Api[API Reference]
-  Architecture --> Security[Security Model]
-  Security --> Roadmap[Production Roadmap]
-  Market[Market Positioning] --> Roadmap
+  Readme["Repository README"] --> Quickstart["Quickstart"]
+  Quickstart --> Demo["Demo Guide"]
+  Demo --> Architecture["Architecture"]
+  Architecture --> Api["API Reference"]
+  Architecture --> Security["Security Model"]
+  Security --> Roadmap["Production Roadmap"]
+  Market["Market Positioning"] --> Roadmap
 ```
 
 ## Product Summary
@@ -35,3 +35,14 @@ provider practices and health-tech API developers. It turns a prior-auth request
 into a structured workflow: discover payer requirements, gather synthetic EHR
 evidence, block incomplete packages, submit complete packages, calculate ROI, and
 write audit hashes.
+
+## Diagram Checks
+
+All Mermaid diagrams in `README.md` and `docs/*.md` can be extracted and
+rendered locally before pushing:
+
+```bash
+pnpm docs:diagrams:render
+```
+
+Rendered files are written to `output/mermaid/`, which is ignored by Git.

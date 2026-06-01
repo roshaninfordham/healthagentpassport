@@ -8,19 +8,19 @@ CLI commands, config files, and a streaming event model.
 
 ```mermaid
 flowchart LR
-  Operator[Practice operator] --> Studio[Studio UI<br/>Next.js]
-  Developer[API developer] --> CLI[priorauth CLI]
-  Studio --> DemoRun[Demo runner<br/>src/lib/priorauth-demo-runner.ts]
-  CLI --> StudioApi[Studio API routes]
-  DemoRun --> EHR[Sample EHR API<br/>Fastify]
-  DemoRun --> Payer[Sample Payer API<br/>Fastify]
-  DemoRun --> Core[PriorAuth Core SDK]
-  Core --> Evidence[Evidence matcher]
-  Core --> ROI[ROI calculator]
-  Core --> Audit[Audit hash writer]
-  Config[config/*.yaml] --> Core
-  Agent[.priorauth agent + delegation] --> DemoRun
-  DemoRun --> Events[SSE event store]
+  Operator["Practice operator"] --> Studio["Studio UI"]
+  Developer["API developer"] --> CLI["priorauth CLI"]
+  Studio --> DemoRun["Demo runner"]
+  CLI --> StudioApi["Studio API routes"]
+  DemoRun --> EHR["Sample EHR API"]
+  DemoRun --> Payer["Sample payer API"]
+  DemoRun --> Core["PriorAuth core SDK"]
+  Core --> Evidence["Evidence matcher"]
+  Core --> ROI["ROI calculator"]
+  Core --> Audit["Audit hash writer"]
+  Config["YAML configuration"] --> Core
+  Agent["Demo agent and delegation"] --> DemoRun
+  DemoRun --> Events["SSE event store"]
   Events --> Studio
 ```
 
@@ -28,16 +28,16 @@ flowchart LR
 
 ```mermaid
 flowchart TD
-  Repo[priorauth-passport] --> Apps[apps]
-  Repo --> Packages[packages]
-  Repo --> Studio[src/app + src/components]
-  Repo --> Config[config + .priorauth]
-  Apps --> EHR[sample-ehr-api]
-  Apps --> Payer[sample-payer-api]
-  Packages --> Core[priorauth-core]
-  Packages --> Cli[cli]
-  Studio --> Routes[API routes]
-  Studio --> UI[Dashboard panels]
+  Repo["priorauth-passport"] --> Apps["apps"]
+  Repo --> Packages["packages"]
+  Repo --> StudioCode["Studio app code"]
+  Repo --> ConfigDir["Configuration files"]
+  Apps --> EHR["sample-ehr-api"]
+  Apps --> Payer["sample-payer-api"]
+  Packages --> Core["priorauth-core"]
+  Packages --> Cli["cli"]
+  StudioCode --> Routes["API routes"]
+  StudioCode --> UI["Dashboard panels"]
 ```
 
 ## Runtime Sequence
@@ -82,12 +82,12 @@ sequenceDiagram
 
 ```mermaid
 flowchart LR
-  Step[Workflow step] --> Tool[toolCall metadata]
-  Step --> Api[apiExchange metadata]
-  Step --> Summary[human-readable summary]
-  Tool --> Timeline[Live Workflow timeline]
-  Api --> Inspector[Request / Response Inspector]
-  Tool --> CLI[priorauth submit terminal stream]
+  Step["Workflow step"] --> Tool["toolCall metadata"]
+  Step --> Api["apiExchange metadata"]
+  Step --> Summary["Human readable summary"]
+  Tool --> Timeline["Live workflow timeline"]
+  Api --> Inspector["Request and response inspector"]
+  Tool --> CLI["Terminal stream"]
   Summary --> Timeline
 ```
 
@@ -132,11 +132,11 @@ stateDiagram-v2
 
 ```mermaid
 flowchart TD
-  Run[Prior-auth run] --> Synthetic{Synthetic only?}
-  Synthetic -->|No| Block[Block]
-  Synthetic -->|Yes| Evidence{Required evidence complete?}
-  Evidence -->|No| Draft[Draft saved, no payer submission]
-  Evidence -->|Yes| Submit[Submit to synthetic payer API]
-  Submit --> Audit[Audit hashes]
+  Run["Prior-auth run"] --> Synthetic{"Synthetic only?"}
+  Synthetic -->|No| Block["Block"]
+  Synthetic -->|Yes| Evidence{"Required evidence complete?"}
+  Evidence -->|No| Draft["Draft saved, no payer submission"]
+  Evidence -->|Yes| Submit["Submit to synthetic payer API"]
+  Submit --> Audit["Audit hashes"]
   Draft --> Audit
 ```

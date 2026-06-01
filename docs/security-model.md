@@ -8,16 +8,16 @@ no medical advice.
 
 ```mermaid
 flowchart TD
-  User[Practice operator] --> UI[Studio]
-  UI --> Runner[Prior-auth runner]
-  Runner --> Synthetic{Synthetic case?}
-  Synthetic -->|No| Reject[Reject]
-  Synthetic -->|Yes| Scope[Verify demo agent scopes]
-  Scope --> Evidence[Gather evidence from EHR API]
-  Evidence --> Complete{All required evidence?}
-  Complete -->|No| Draft[Draft saved, no payer submission]
-  Complete -->|Yes| Submit[Submit to synthetic payer]
-  Draft --> Audit[Hash evidence + ROI]
+  User["Practice operator"] --> UI["Studio"]
+  UI --> Runner["Prior-auth runner"]
+  Runner --> Synthetic{"Synthetic case?"}
+  Synthetic -->|No| Reject["Reject"]
+  Synthetic -->|Yes| Scope["Verify demo agent scopes"]
+  Scope --> Evidence["Gather evidence from EHR API"]
+  Evidence --> Complete{"All required evidence?"}
+  Complete -->|No| Draft["Draft saved, no payer submission"]
+  Complete -->|Yes| Submit["Submit to synthetic payer"]
+  Draft --> Audit["Hash evidence and ROI"]
   Submit --> Audit
 ```
 
@@ -55,9 +55,9 @@ flowchart TD
 
 ```mermaid
 flowchart LR
-  Demo[Synthetic local demo] --> Auth[OIDC + service auth]
-  Auth --> Fhir[FHIR server integration]
-  Fhir --> Payer[Payer API integration]
-  Payer --> Store[Durable event/audit store]
-  Store --> Compliance[HIPAA controls, BAA, monitoring]
+  Demo["Synthetic local demo"] --> Auth["OIDC and service auth"]
+  Auth --> Fhir["FHIR server integration"]
+  Fhir --> Payer["Payer API integration"]
+  Payer --> Store["Durable event and audit store"]
+  Store --> Compliance["HIPAA controls, BAA, monitoring"]
 ```

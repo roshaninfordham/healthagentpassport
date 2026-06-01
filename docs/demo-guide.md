@@ -13,23 +13,23 @@ with evidence guardrails, payer submission, and audit proof."
 
 ```mermaid
 flowchart TD
-  Hero[PriorAuth Passport hero] --> Infra[Live infrastructure]
-  Infra --> Compare[Manual vs electronic]
-  Compare --> Complete[Run complete ePA case]
-  Complete --> Timeline[Live timeline]
-  Timeline --> Evidence[Evidence checklist]
-  Evidence --> Roi[ROI calculator]
-  Roi --> Audit[Audit hashes]
-  Audit --> Incomplete[Run incomplete case]
-  Incomplete --> Guardrail[Missing evidence blocks payer submission]
+  Hero["PriorAuth Passport landing page"] --> Infra["Live infrastructure"]
+  Infra --> Compare["Manual vs electronic"]
+  Compare --> Complete["Run complete ePA case"]
+  Complete --> Timeline["Live timeline"]
+  Timeline --> Evidence["Evidence checklist"]
+  Evidence --> Roi["ROI calculator"]
+  Roi --> Audit["Audit hashes"]
+  Audit --> Incomplete["Run incomplete case"]
+  Incomplete --> Guardrail["Missing evidence blocks payer submission"]
 ```
 
 ## Presenter Script
 
 1. Start with the user: practice operations managers and API developers.
 2. Show the terminal readiness box from `pnpm demo`.
-3. Open Studio and show the Overview tab: what the product does, services,
-   system map, and market assumptions.
+3. Open Studio and show the landing explainer: problem, solution, impact, and
+   how the workflow runs.
 4. Point to the two workflows:
    manual is `$10.97` and `16 min`; electronic is `$5.79` and `9 min`.
 5. Open Prior Auth Inbox and run the complete ePA case.
