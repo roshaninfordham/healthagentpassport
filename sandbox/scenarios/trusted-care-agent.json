@@ -1,0 +1,30 @@
+{
+  "agentId": "trusted-care-agent",
+  "scenario": "trusted",
+  "intendedActions": [
+    {
+      "type": "http",
+      "method": "GET",
+      "url": "http://gateway.local/fhir/patient/maya-001",
+      "purpose": "read scoped synthetic FHIR data"
+    },
+    {
+      "type": "http",
+      "method": "POST",
+      "url": "http://gateway.local/prior-auth",
+      "purpose": "prepare synthetic prior authorization package"
+    }
+  ],
+  "simulatedRuntimeEvents": [
+    {
+      "type": "http_request",
+      "target": "/fhir/patient/maya-001",
+      "risk": "low"
+    },
+    {
+      "type": "http_request",
+      "target": "/prior-auth",
+      "risk": "low"
+    }
+  ]
+}
