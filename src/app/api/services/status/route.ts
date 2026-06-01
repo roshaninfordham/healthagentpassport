@@ -1,4 +1,5 @@
 import { access } from "node:fs/promises";
+import { getDemoStepDelayMs } from "@/lib/demo-config";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -58,7 +59,7 @@ export async function GET() {
     policyConfig,
     trustedAgent,
     demo: {
-      stepDelayMs: Number(process.env.DEMO_STEP_DELAY_MS ?? 1200)
+      stepDelayMs: getDemoStepDelayMs()
     }
   });
 }

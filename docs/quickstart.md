@@ -64,7 +64,7 @@ the terminal and browser show the same agent actions.
 ```bash
 EHR_API_URL="http://localhost:4001"
 PAYER_API_URL="http://localhost:4002"
-DEMO_STEP_DELAY_MS="1200"
+DEMO_STEP_DELAY_MS="2000"
 ALLOW_REAL_PHI="false"
 SYNTHETIC_DATA_ONLY="true"
 ```

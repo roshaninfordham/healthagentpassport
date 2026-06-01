@@ -22,4 +22,4 @@ workflow:
   defaultCaseId: pa-case-001
   ehrBaseUrl: http://localhost:4001
   payerBaseUrl: http://localhost:4002
-  demoDelayMs: 1200
+  demoDelayMs: 2000

@@ -103,7 +103,7 @@ export function PriorAuthServiceStatusPanel() {
         </span>
         <span className="inline-flex items-center gap-2 rounded-md border border-white/10 bg-white/[0.04] px-3 py-1">
           <FileCog className="h-3.5 w-3.5 text-amber-300" />
-          Step delay {status?.demo.stepDelayMs ?? 1200} ms
+          Step delay {status?.demo.stepDelayMs ?? 2000} ms
         </span>
         {!status?.ehr.online || !status?.payer.online ? (
           <span className="inline-flex items-center gap-2 rounded-md border border-rose-400/20 bg-rose-400/10 px-3 py-1 text-rose-100">

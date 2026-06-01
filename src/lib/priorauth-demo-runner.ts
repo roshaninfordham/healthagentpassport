@@ -12,6 +12,7 @@ import {
   type PriorAuthScenario,
   type ToolCallRecord
 } from "@priorauth/passport-core";
+import { getDemoStepDelayMs } from "@/lib/demo-config";
 import { ingestRunEvent } from "@/lib/live-events";
 
 type RunContext = {
@@ -201,7 +202,7 @@ export async function runElectronicPriorAuthDemo(input: {
     runId: input.runId,
     caseId: input.caseId,
     scenario: input.scenario,
-    demoDelayMs: Number(process.env.DEMO_STEP_DELAY_MS ?? 1200)
+    demoDelayMs: getDemoStepDelayMs()
   };
 
   await emit(ctx, {

@@ -92,9 +92,9 @@ flowchart LR
 ```
 
 The event stream is intentionally verbose for demo clarity. Each action waits
-for the configured `DEMO_STEP_DELAY_MS`, then emits enough metadata to show what
-the agent called, which API was contacted, and what evidence or ROI artifact was
-produced.
+for the configured `DEMO_STEP_DELAY_MS`, clamped to at least 2 seconds in normal
+demo mode, then emits enough metadata to show what the agent called, which API
+was contacted, and what evidence or ROI artifact was produced.
 
 ## Evidence State Machine
 
