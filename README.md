@@ -6,8 +6,8 @@ and health API teams.
 PriorAuth Passport automates the administrative prior-auth path: intake,
 requirement discovery, EHR evidence gathering, package building, payer
 submission, ROI calculation, and audit evidence. It runs with synthetic data,
-real local HTTP services, a TypeScript SDK core, a CLI, and a live Next.js
-Studio.
+same-origin demo APIs, optional local HTTP services, a TypeScript SDK core, a
+CLI, and a live Next.js Studio.
 
 ## Who uses it?
 
@@ -21,31 +21,35 @@ Studio.
 
 ```bash
 pnpm install
-pnpm demo
+pnpm studio
 ```
 
 Open [http://localhost:3000](http://localhost:3000), then click:
 
-1. `Run complete ePA case`
-2. `Run incomplete documentation case`
+1. `Start live demo`
+2. `Check gaps`
 
-The demo starts three real local services:
+The default demo is hosted/Vercel-ready: Studio calls internal Next.js route
+handlers for synthetic EHR and payer APIs. No localhost `4001` or `4002`
+service is required for the web demo.
 
-```text
-+--------------------------------------------------------------+
-| PriorAuth Passport Demo                                      |
-+--------------------------------------------------------------+
-| EHR API    http://localhost:4001     healthy                 |
-| Payer API  http://localhost:4002     healthy                 |
-| Studio     http://localhost:3000     healthy                 |
-+--------------------------------------------------------------+
+```mermaid
+flowchart LR
+  Operator["Practice operator"] --> Studio["PriorAuth Studio"]
+  Studio --> Stream["POST /api/demo/stream"]
+  Stream --> EHR["Internal synthetic EHR routes"]
+  Stream --> Payer["Internal synthetic payer routes"]
+  Stream --> Core["PriorAuth core SDK"]
+  Core --> Packet["Prior Authorization Audit Packet"]
+  Packet --> Studio
 ```
 
-The UI streams each step through server-sent events: patient fetch, condition
-fetch, medication fetch, observation fetch, document fetch, payer requirements,
-evidence matching, package build, payer submission, ROI, and audit. Every step
-also emits a visible tool call and API exchange so the operator can see exactly
-where data is being fetched or ingested.
+The UI reads newline-delimited JSON from `/api/demo/stream`. Each event includes
+agent, tool call, API exchange, proof row, ROI, and audit packet metadata so the
+operator can see where data is fetched and why a case was submitted or blocked.
+
+`pnpm demo` still starts optional Fastify EHR and payer services for local API
+experiments and CLI compatibility.
 
 You can also trigger the same workflow from the CLI while Studio updates live:
 
@@ -58,22 +62,22 @@ pnpm priorauth submit --case pa-case-001 --scenario incomplete
 ## Studio Surfaces
 
 ```text
-1. Landing explainer
-2. Overview
-3. Prior Auth Inbox
-4. Live Workflow
-5. ROI Calculator
-6. Evidence & Requirements
-7. Audit Ledger
-8. Developer Mode
-9. Settings
+1. Metric-first landing
+2. Live demo workspace
+3. Overview
+4. Prior Auth Inbox
+5. Live Workflow
+6. ROI Calculator
+7. Evidence & Requirements
+8. Audit Ledger
+9. Developer Mode
+10. Settings
 ```
 
-The landing explainer states the plain-English problem, solution, impact, and
-how the workflow runs. The Live Workflow tab shows the timeline, tool calls, and
-request/response inspector. The Audit Ledger tab shows API counters plus
-copy/download audit packet controls. Developer Mode shows install, CLI, and SDK
-usage.
+The first viewport is numbers-first: `$10.97`, `$5.79`, `$5.18`, `16 min`,
+`7-14 min`, evidence status, and proof status. The live workspace immediately
+below shows the agent workflow, tool calls, data ingest, request/response
+inspector, proof rows, and copy/download audit packet controls.
 
 ## What the demo proves
 
@@ -91,12 +95,12 @@ ROI.
 ```mermaid
 flowchart LR
   User["Practice operator or API developer"] --> Studio["PriorAuth Studio"]
-  Studio --> Runner["Electronic PA runner"]
+  Studio --> Runner["NDJSON demo stream"]
   Runner --> Core["PriorAuth core SDK"]
-  Runner --> EHR["Sample EHR API"]
-  Runner --> Payer["Sample payer API"]
+  Runner --> EHR["Synthetic EHR route handlers"]
+  Runner --> Payer["Synthetic payer route handlers"]
   Core --> Config["ROI, policy, and payer rules"]
-  Runner --> Audit["Audit hash event"]
+  Runner --> Audit["Audit packet and hashes"]
   Audit --> Studio
 ```
 
@@ -117,25 +121,25 @@ flowchart LR
 ```mermaid
 sequenceDiagram
   participant UI as Studio
-  participant Runner as Demo Runner
-  participant EHR as Sample EHR API
-  participant Payer as Sample Payer API
+  participant Runner as POST /api/demo/stream
+  participant EHR as Internal EHR routes
+  participant Payer as Internal payer routes
   participant Core as PriorAuth Core
 
-  UI->>Runner: POST /api/demo/run
-  Runner-->>UI: start event
-  Runner->>EHR: GET /fhir/Patient/maya-001
+  UI->>Runner: POST scenario
+  Runner-->>UI: NDJSON start event
+  Runner->>EHR: GET /api/demo/ehr/patient/maya-001
   Runner->>EHR: GET conditions, medications, observations, documents
-  Runner->>Payer: POST /prior-auth/requirements
+  Runner->>Payer: POST /api/demo/payer/requirements
   Runner->>Core: matchEvidence()
   alt evidence complete
     Runner->>Core: buildPriorAuthPackage()
-    Runner->>Payer: POST /prior-auth/submit
+    Runner->>Payer: POST /api/demo/payer/submit
     Runner->>Core: calculate ROI + create audit event
-    Runner-->>UI: complete event
+    Runner-->>UI: audit packet submitted
   else evidence missing
     Runner->>Core: create draft audit event
-    Runner-->>UI: blocked event, no payer submission
+    Runner-->>UI: audit packet needs human review
   end
 ```
 
@@ -156,7 +160,8 @@ docs/                      Architecture, APIs, demo, security, roadmap
 ## Commands
 
 ```bash
-pnpm demo          # EHR + payer + Studio
+pnpm studio        # hosted-ready Studio with internal APIs
+pnpm demo          # optional EHR + payer + Studio local services
 pnpm typecheck
 pnpm lint
 pnpm test

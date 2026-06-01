@@ -6,33 +6,36 @@ All APIs are local demo APIs and use synthetic data only.
 
 ```mermaid
 flowchart LR
-  UI["Studio UI"] --> Run["POST /api/demo/run"]
+  UI["Studio UI"] --> Stream["POST /api/demo/stream"]
+  UI --> Run["POST /api/demo/run"]
   UI --> Reset["POST /api/demo/reset"]
-  UI --> Stream["GET /api/events/stream"]
   UI --> Status["GET /api/services/status"]
   UI --> Stats["GET /api/upstream/stats"]
-  Run --> EHR["Sample EHR API"]
-  Run --> Payer["Sample payer API"]
+  Stream --> EHR["Internal synthetic EHR routes"]
+  Stream --> Payer["Internal synthetic payer routes"]
+  Run --> LegacyEvents["GET /api/events/stream"]
 ```
 
 ## API Lifecycle
 
 ```mermaid
 flowchart TD
-  Start["Operator starts a run"] --> RunApi["POST /api/demo/run"]
-  RunApi --> Events["GET /api/events/stream"]
+  Start["Operator starts a run"] --> StreamApi["POST /api/demo/stream"]
+  StreamApi --> Events["NDJSON events"]
   Events --> ToolCalls["Visible tool calls"]
   Events --> ApiCalls["Visible API exchanges"]
+  Events --> Proof["HTTP status, latency, hash"]
   ApiCalls --> EHR["EHR reads"]
   ApiCalls --> Payer["Payer requirements and submission"]
-  ToolCalls --> Result["Complete or blocked result"]
+  Proof --> Packet["Audit packet"]
+  ToolCalls --> Result["Submitted or needs human review"]
   Payer --> Result
 ```
 
-### `POST /api/demo/run`
+### `POST /api/demo/stream`
 
-Starts a live prior-auth workflow and streams events over
-`/api/events/stream`.
+Starts a live hosted-ready workflow and returns newline-delimited JSON events.
+This is the primary web demo API.
 
 Request:
 
@@ -47,42 +50,42 @@ Request:
 
 Response:
 
-```json
-{
-  "runId": "uuid",
-  "caseId": "pa-case-001",
-  "scenario": "complete"
-}
+```http
+content-type: application/x-ndjson
 ```
 
-### `POST /api/demo/reset`
-
-Clears in-memory run state and resets EHR and payer counters.
-
-### `GET /api/events/stream`
-
-Server-sent event stream for `PriorAuthRunEvent` objects.
-
-Each event may include:
+Each line is a `PriorAuthRunEvent`:
 
 ```json
 {
+  "phase": "fetch_patient",
+  "status": "passed",
   "details": {
-    "summary": "Calling GET http://localhost:4001/fhir/Patient/maya-001",
+    "agent": "EvidenceAgent",
+    "summary": "Patient maya-001",
     "toolCall": {
       "id": "fetch_patient",
-      "name": "fetchEhrResource",
-      "status": "running",
-      "input": { "resource": "Patient", "id": "maya-001" }
+      "name": "getPatient",
+      "status": "passed",
+      "input": { "patientId": "maya-001" }
     },
     "apiExchange": {
       "id": "fetch_patient",
-      "label": "EHR Patient request",
+      "label": "EHR patient",
       "source": "ehr",
       "method": "GET",
-      "url": "http://localhost:4001/fhir/Patient/maya-001",
-      "status": "running"
-    }
+      "url": "/api/demo/ehr/patient/maya-001",
+      "status": "passed"
+    },
+    "proofRows": [
+      {
+        "method": "GET",
+        "path": "/api/demo/ehr/patient/maya-001",
+        "status": 200,
+        "latencyMs": 24,
+        "hash": "a50aa92b7a"
+      }
+    ]
   }
 }
 ```
@@ -108,6 +111,21 @@ complete
 blocked
 ```
 
+### `POST /api/demo/run`
+
+Legacy compatibility API. It starts a run and persists events for the old
+`/api/events/stream` SSE surface. The default implementation uses internal
+relative EHR and payer routes unless `EHR_API_URL` or `PAYER_API_URL` is set.
+
+### `POST /api/demo/reset`
+
+Clears in-memory run state and resets internal or external EHR and payer
+counters.
+
+### `GET /api/events/stream`
+
+Legacy server-sent event stream for `PriorAuthRunEvent` objects.
+
 ### `POST /api/events/ingest`
 
 Accepts externally produced demo events. This is useful for SDK and CLI
@@ -131,33 +149,34 @@ Returns events for one run.
 
 ## Sample EHR API
 
-Default URL: `http://localhost:4001`
+Hosted default: same-origin internal routes under `/api/demo/ehr`.
+
+Optional local Fastify URL: `http://localhost:4001`
 
 | Method | Path | Purpose |
 | --- | --- | --- |
-| `GET` | `/health` | Service health |
-| `GET` | `/fhir/Patient/:id` | Synthetic patient demographics |
-| `GET` | `/fhir/Condition?patient=:id` | Diagnosis bundle |
-| `GET` | `/fhir/MedicationRequest?patient=:id` | Medication bundle |
-| `GET` | `/fhir/Observation?patient=:id` | Observation bundle |
-| `GET` | `/documents?patient=:id` | Supporting documents |
-| `GET` | `/stats` | Request counters |
-| `POST` | `/stats/reset` | Reset counters |
+| `GET` | `/api/demo/ehr/patient/:id` | Synthetic patient demographics |
+| `GET` | `/api/demo/ehr/conditions?patient=:id` | Diagnosis bundle |
+| `GET` | `/api/demo/ehr/medications?patient=:id` | Medication bundle |
+| `GET` | `/api/demo/ehr/observations?patient=:id` | Observation bundle |
+| `GET` | `/api/demo/ehr/documents?patient=:id` | Supporting documents |
+| `GET` | `/api/upstream/stats` | Request counters |
+| `POST` | `/api/upstream/stats` | Reset counters |
 
 `scenario=incomplete` removes observations and referral note evidence.
 
 ## Sample Payer API
 
-Default URL: `http://localhost:4002`
+Hosted default: same-origin internal routes under `/api/demo/payer`.
+
+Optional local Fastify URL: `http://localhost:4002`
 
 | Method | Path | Purpose |
 | --- | --- | --- |
-| `GET` | `/health` | Service health |
-| `POST` | `/prior-auth/requirements` | Return required evidence |
-| `POST` | `/prior-auth/submit` | Accept complete package |
-| `GET` | `/prior-auth/:id/status` | Return pending review status |
-| `GET` | `/stats` | Request counters |
-| `POST` | `/stats/reset` | Reset counters |
+| `POST` | `/api/demo/payer/requirements` | Return required evidence |
+| `POST` | `/api/demo/payer/submit` | Accept complete package |
+| `GET` | `/api/upstream/stats` | Request counters |
+| `POST` | `/api/upstream/stats` | Reset counters |
 
 ## Core SDK
 

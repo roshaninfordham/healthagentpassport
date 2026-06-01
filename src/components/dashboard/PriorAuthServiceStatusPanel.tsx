@@ -72,17 +72,17 @@ export function PriorAuthServiceStatusPanel() {
         <StatusPill
           label="Sample EHR API"
           online={status?.ehr.online ?? false}
-          detail={status?.ehr.url ?? "http://localhost:4001/health"}
+          detail={status?.ehr.url ?? "/api/demo/ehr"}
         />
         <StatusPill
           label="Sample payer API"
           online={status?.payer.online ?? false}
-          detail={status?.payer.url ?? "http://localhost:4002/health"}
+          detail={status?.payer.url ?? "/api/demo/payer"}
         />
         <StatusPill
-          label="Studio SSE"
+          label="Demo stream"
           online={status?.studio.online ?? true}
-          detail={status?.studio.stream ?? "/api/events/stream"}
+          detail={status?.studio.stream ?? "/api/demo/stream"}
         />
         <StatusPill
           label="Config bundle"
@@ -103,7 +103,7 @@ export function PriorAuthServiceStatusPanel() {
         </span>
         <span className="inline-flex items-center gap-2 rounded-md border border-white/10 bg-white/[0.04] px-3 py-1">
           <FileCog className="h-3.5 w-3.5 text-amber-300" />
-          Step delay {status?.demo.stepDelayMs ?? 2000} ms
+          Step delay {status?.demo.stepDelayMs ?? 1200} ms
         </span>
         {!status?.ehr.online || !status?.payer.online ? (
           <span className="inline-flex items-center gap-2 rounded-md border border-rose-400/20 bg-rose-400/10 px-3 py-1 text-rose-100">

@@ -1,8 +1,9 @@
 # Architecture
 
-PriorAuth Passport is built as a demoable local product with production-shaped
-interfaces: a Studio UI, real HTTP EHR and payer services, a TypeScript core SDK,
-CLI commands, config files, and a streaming event model.
+PriorAuth Passport is built as a hosted-ready product demo with
+production-shaped interfaces: a Studio UI, internal synthetic EHR and payer API
+routes, a TypeScript core SDK, CLI commands, config files, and a streaming event
+model.
 
 ## Logical Architecture
 
@@ -10,18 +11,19 @@ CLI commands, config files, and a streaming event model.
 flowchart LR
   Operator["Practice operator"] --> Studio["Studio UI"]
   Developer["API developer"] --> CLI["priorauth CLI"]
-  Studio --> DemoRun["Demo runner"]
+  Studio --> DemoRun["NDJSON stream runner"]
   CLI --> StudioApi["Studio API routes"]
-  DemoRun --> EHR["Sample EHR API"]
-  DemoRun --> Payer["Sample payer API"]
+  DemoRun --> EHR["Internal synthetic EHR routes"]
+  DemoRun --> Payer["Internal synthetic payer routes"]
   DemoRun --> Core["PriorAuth core SDK"]
   Core --> Evidence["Evidence matcher"]
   Core --> ROI["ROI calculator"]
   Core --> Audit["Audit hash writer"]
   Config["YAML configuration"] --> Core
   Agent["Demo agent and delegation"] --> DemoRun
-  DemoRun --> Events["SSE event store"]
-  Events --> Studio
+  DemoRun --> Packet["Audit packet"]
+  DemoRun --> Studio
+  Packet --> Studio
 ```
 
 ## Package Layout
@@ -45,36 +47,34 @@ flowchart TD
 ```mermaid
 sequenceDiagram
   participant UI as Studio UI
-  participant API as /api/demo/run
-  participant Runner as Demo Runner
-  participant Events as SSE Store
-  participant EHR as EHR API
-  participant Payer as Payer API
+  participant API as /api/demo/stream
+  participant Runner as Stream Runner
+  participant EHR as Internal EHR Routes
+  participant Payer as Internal Payer Routes
   participant Core as Core SDK
 
   UI->>API: POST scenario=complete
-  API->>Runner: runElectronicPriorAuthDemo()
-  Runner->>Events: start
-  Events-->>UI: event stream
-  Runner->>Events: toolCall + apiExchange metadata for every step
+  API->>Runner: runPriorAuthWorkflowStream()
+  Runner-->>UI: NDJSON start event
+  Runner-->>UI: toolCall + apiExchange metadata for every step
   Runner->>Core: getSeedCase()
-  Runner->>EHR: GET /fhir/Patient/:id
-  Runner->>EHR: GET /fhir/Condition
-  Runner->>EHR: GET /fhir/MedicationRequest
-  Runner->>EHR: GET /fhir/Observation
-  Runner->>EHR: GET /documents
-  Runner->>Payer: POST /prior-auth/requirements
+  Runner->>EHR: GET /api/demo/ehr/patient/:id
+  Runner->>EHR: GET /api/demo/ehr/conditions
+  Runner->>EHR: GET /api/demo/ehr/medications
+  Runner->>EHR: GET /api/demo/ehr/observations
+  Runner->>EHR: GET /api/demo/ehr/documents
+  Runner->>Payer: POST /api/demo/payer/requirements
   Runner->>Core: matchEvidence()
   alt complete evidence
     Runner->>Core: buildPriorAuthPackage()
-    Runner->>Payer: POST /prior-auth/submit
+    Runner->>Payer: POST /api/demo/payer/submit
     Runner->>Core: calculatePerAuthRoi()
     Runner->>Core: createAuditEvent()
-    Runner->>Events: complete
+    Runner-->>UI: audit packet submitted
   else missing evidence
     Runner->>Core: calculatePerAuthRoi()
     Runner->>Core: createAuditEvent()
-    Runner->>Events: blocked
+    Runner-->>UI: audit packet needs human review
   end
 ```
 
@@ -84,17 +84,19 @@ sequenceDiagram
 flowchart LR
   Step["Workflow step"] --> Tool["toolCall metadata"]
   Step --> Api["apiExchange metadata"]
+  Step --> Proof["HTTP status, latency, hash"]
   Step --> Summary["Human readable summary"]
   Tool --> Timeline["Live workflow timeline"]
   Api --> Inspector["Request and response inspector"]
+  Proof --> Packet["Audit packet"]
   Tool --> CLI["Terminal stream"]
   Summary --> Timeline
 ```
 
-The event stream is intentionally verbose for demo clarity. Each action waits
-for the configured `DEMO_STEP_DELAY_MS`, clamped to at least 2 seconds in normal
+The event stream is intentionally visible for demo clarity. Each action waits for
+the configured `DEMO_STEP_DELAY_MS`, clamped to at least 1.2 seconds in normal
 demo mode, then emits enough metadata to show what the agent called, which API
-was contacted, and what evidence or ROI artifact was produced.
+was contacted, and what evidence, ROI, proof, or audit artifact was produced.
 
 ## Evidence State Machine
 
@@ -115,8 +117,10 @@ stateDiagram-v2
 | Service | Default | Test |
 | --- | ---: | ---: |
 | Studio | 3000 | 3100 |
-| Sample EHR API | 4001 | 4101 |
-| Sample Payer API | 4002 | 4102 |
+| Internal EHR routes | same host | same host |
+| Internal payer routes | same host | same host |
+| Optional sample EHR API | 4001 | 4101 |
+| Optional sample payer API | 4002 | 4102 |
 
 ## Config Files
 

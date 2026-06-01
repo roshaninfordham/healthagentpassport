@@ -1,10 +1,11 @@
 import { access } from "node:fs/promises";
 import { getDemoStepDelayMs } from "@/lib/demo-config";
+import { getDemoWorkflowUrls } from "@/lib/internal-demo-api";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-async function checkHttp(url: string) {
+async function checkHttp(url: string, displayUrl = url) {
   const startedAt = Date.now();
 
   try {
@@ -14,16 +15,25 @@ async function checkHttp(url: string) {
       online: response.ok,
       status: response.status,
       latencyMs: Date.now() - startedAt,
-      url
+      url: displayUrl
     };
   } catch {
     return {
       online: false,
       status: null,
       latencyMs: Date.now() - startedAt,
-      url
+      url: displayUrl
     };
   }
+}
+
+function internalStatus(url: string) {
+  return {
+    online: true,
+    status: 200,
+    latencyMs: 0,
+    url
+  };
 }
 
 async function checkFile(path: string) {
@@ -35,13 +45,18 @@ async function checkFile(path: string) {
   }
 }
 
-export async function GET() {
-  const ehrUrl = process.env.EHR_API_URL ?? "http://localhost:4001";
-  const payerUrl = process.env.PAYER_API_URL ?? "http://localhost:4002";
+export async function GET(request: Request) {
+  const urls = getDemoWorkflowUrls(new URL(request.url).origin);
+  const ehrHealth = urls.ehr.health();
+  const payerHealth = urls.payer.health();
 
   const [ehr, payer, roiConfig, policyConfig, trustedAgent] = await Promise.all([
-    checkHttp(`${ehrUrl}/health`),
-    checkHttp(`${payerUrl}/health`),
+    urls.ehr.internal
+      ? Promise.resolve(internalStatus(urls.ehr.baseDisplayUrl))
+      : checkHttp(ehrHealth.fetchUrl, ehrHealth.displayUrl),
+    urls.payer.internal
+      ? Promise.resolve(internalStatus(urls.payer.baseDisplayUrl))
+      : checkHttp(payerHealth.fetchUrl, payerHealth.displayUrl),
     checkFile("config/roi.yaml"),
     checkFile("config/priorauth-policy.yaml"),
     checkFile(".priorauth/agents/trusted-priorauth-agent.json")
@@ -52,8 +67,10 @@ export async function GET() {
     payer,
     studio: {
       online: true,
-      url: "http://localhost:3000",
-      stream: "/api/events/stream"
+      url: urls.studio.baseDisplayUrl,
+      stream: urls.studio.ndjsonStream,
+      sseStream: urls.studio.sseStream,
+      ndjsonStream: urls.studio.ndjsonStream
     },
     roiConfig,
     policyConfig,

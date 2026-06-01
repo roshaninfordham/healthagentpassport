@@ -1,5 +1,5 @@
-const DEFAULT_DEMO_STEP_DELAY_MS = 2000;
-const MIN_VISIBLE_DEMO_STEP_DELAY_MS = 2000;
+const DEFAULT_DEMO_STEP_DELAY_MS = 1200;
+const MIN_VISIBLE_DEMO_STEP_DELAY_MS = 1200;
 
 function parseDelayMs(value: string | undefined) {
   const parsed = Number(value);
@@ -17,4 +17,3 @@ export function getDemoStepDelayMs() {
 
   return Math.max(requestedDelayMs, MIN_VISIBLE_DEMO_STEP_DELAY_MS);
 }
-

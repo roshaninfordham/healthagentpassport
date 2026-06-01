@@ -1,3 +1,9 @@
+import {
+  getDemoWorkflowUrls,
+  getInternalDemoStats,
+  resetInternalDemoStats
+} from "@/lib/internal-demo-api";
+
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
@@ -16,30 +22,41 @@ async function fetchStats(url: string) {
   }
 }
 
-export async function GET() {
-  const ehrUrl = process.env.EHR_API_URL ?? "http://localhost:4001";
-  const payerUrl = process.env.PAYER_API_URL ?? "http://localhost:4002";
+export async function GET(request: Request) {
+  const urls = getDemoWorkflowUrls(new URL(request.url).origin);
+  const internalStats = getInternalDemoStats();
 
   const [ehr, payer] = await Promise.all([
-    fetchStats(`${ehrUrl}/stats`),
-    fetchStats(`${payerUrl}/stats`)
+    urls.ehr.internal
+      ? Promise.resolve({ online: true, stats: internalStats.ehr })
+      : fetchStats(urls.ehr.stats().fetchUrl),
+    urls.payer.internal
+      ? Promise.resolve({ online: true, stats: internalStats.payer })
+      : fetchStats(urls.payer.stats().fetchUrl)
   ]);
 
   return Response.json({ ehr, payer });
 }
 
-export async function POST() {
-  const ehrUrl = process.env.EHR_API_URL ?? "http://localhost:4001";
-  const payerUrl = process.env.PAYER_API_URL ?? "http://localhost:4002";
+export async function POST(request: Request) {
+  const urls = getDemoWorkflowUrls(new URL(request.url).origin);
+
+  if (urls.ehr.internal || urls.payer.internal) {
+    resetInternalDemoStats();
+  }
 
   await Promise.all([
-    fetch(`${ehrUrl}/stats/reset`, { method: "POST" }).catch(
-      () => null
-    ),
-    fetch(`${payerUrl}/stats/reset`, { method: "POST" }).catch(
-      () => null
-    )
+    urls.ehr.internal
+      ? Promise.resolve(null)
+      : fetch(urls.ehr.resetStats().fetchUrl, { method: "POST" }).catch(
+          () => null
+        ),
+    urls.payer.internal
+      ? Promise.resolve(null)
+      : fetch(urls.payer.resetStats().fetchUrl, { method: "POST" }).catch(
+          () => null
+        )
   ]);
 
-  return GET();
+  return GET(request);
 }

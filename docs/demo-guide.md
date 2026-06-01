@@ -13,26 +13,24 @@ with evidence guardrails, payer submission, and audit proof."
 
 ```mermaid
 flowchart TD
-  Hero["PriorAuth Passport landing page"] --> Infra["Live infrastructure"]
-  Infra --> Compare["Manual vs electronic"]
-  Compare --> Complete["Run complete ePA case"]
-  Complete --> Timeline["Live timeline"]
+  Hero["Metric-first landing"] --> Workspace["Live demo workspace"]
+  Workspace --> Complete["Start live demo"]
+  Complete --> Timeline["Live agent timeline"]
   Timeline --> Evidence["Evidence checklist"]
-  Evidence --> Roi["ROI calculator"]
-  Roi --> Audit["Audit hashes"]
-  Audit --> Incomplete["Run incomplete case"]
+  Evidence --> Proof["HTTP status, latency, hash"]
+  Proof --> Audit["Audit packet"]
+  Audit --> Incomplete["Check gaps"]
   Incomplete --> Guardrail["Missing evidence blocks payer submission"]
 ```
 
 ## Presenter Script
 
 1. Start with the user: practice operations managers and API developers.
-2. Show the terminal readiness box from `pnpm demo`.
-3. Open Studio and show the landing explainer: problem, solution, impact, and
-   how the workflow runs.
+2. Open Studio from `pnpm studio`.
+3. Show the metric-first landing: cost, time, evidence, and proof status.
 4. Point to the two workflows:
    manual is `$10.97` and `16 min`; electronic is `$5.79` and `9 min`.
-5. Open Prior Auth Inbox and run the complete ePA case.
+5. Click `Start live demo`.
 6. Narrate the live steps:
    - EHR patient, condition, medication, observation, and document reads
    - Payer requirement discovery
@@ -41,13 +39,13 @@ flowchart TD
    - Payer submission
    - ROI calculation
    - Audit hash generation
-7. In Live Workflow, point to Tool Calls and Request / Response Inspector.
-8. Show `PA-DEMO-1001` and `pending_payer_review`.
+7. Point to Tool Calls, Data Ingest, Request / Response, and Proof of Work.
+8. Show `PA-DEMO-1001`, `pending_payer_review`, and the audit packet.
 9. Show ROI carefully:
    - Mode A: `$5.18` transaction savings
    - Mode B: `7 min` baseline time saved
    - Mode C: labor dollar sensitivity only if toggled
-10. Run `Run incomplete documentation case`.
+10. Click `Check gaps`.
 11. Show missing recent observation and referral note.
 12. Emphasize that no payer submission is sent when required evidence is
     missing.
@@ -57,20 +55,21 @@ flowchart TD
 
 | Claim | Where it appears |
 | --- | --- |
-| Real-time workflow | Live timeline via server-sent events |
-| Real infrastructure | Fastify EHR and payer APIs on local ports |
+| Real-time workflow | Live timeline via NDJSON stream |
+| Hosted infrastructure | Same-origin EHR and payer route handlers |
 | Agentic visibility | Tool Calls panel plus API request/response inspector |
+| API proof | HTTP status, latency, and hash rows |
 | ROI proof | ROI calculator and config/roi.yaml |
 | Evidence safety | Evidence checklist and blocked incomplete case |
-| Audit trail | Evidence hash and ROI hash |
+| Audit trail | Prior Authorization Audit Packet |
 | Synthetic data only | Hero badges, API health, security docs |
 
 ## Recovery
 
-If the UI says a service is offline, stop the terminal and run:
+If the UI is stale, click `Reset demo` or restart Studio:
 
 ```bash
-pnpm demo
+pnpm studio
 ```
 
 If counters look stale, click `Reset demo`.

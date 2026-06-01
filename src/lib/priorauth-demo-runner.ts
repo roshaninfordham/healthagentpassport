@@ -8,11 +8,18 @@ import {
   loadRoiConfig,
   matchEvidence,
   type ApiExchange,
+  type EvidenceResult,
+  type PriorAuthCase,
   type PriorAuthRunEvent,
   type PriorAuthScenario,
   type ToolCallRecord
 } from "@priorauth/passport-core";
 import { getDemoStepDelayMs } from "@/lib/demo-config";
+import {
+  getDemoSafety,
+  getDemoWorkflowUrls,
+  getInternalDemoStats
+} from "@/lib/internal-demo-api";
 import { ingestRunEvent } from "@/lib/live-events";
 
 type RunContext = {
@@ -20,6 +27,9 @@ type RunContext = {
   caseId: string;
   scenario: PriorAuthScenario;
   demoDelayMs: number;
+  urls: ReturnType<typeof getDemoWorkflowUrls>;
+  onEvent?: (event: PriorAuthRunEvent) => void | Promise<void>;
+  persistEvents: boolean;
 };
 
 type StepMeta<T> = {
@@ -39,6 +49,7 @@ type StepMeta<T> = {
   summarize?: (result: T) => string;
   toolOutput?: (result: T) => Record<string, unknown>;
   apiResponse?: (result: T) => unknown;
+  details?: (result: T) => Record<string, unknown>;
 };
 
 const requiredScopes = [
@@ -58,20 +69,107 @@ function summarizeForUi(value: unknown): Record<string, unknown> {
   return value as Record<string, unknown>;
 }
 
+function countBundleEntries(value: unknown) {
+  return (value as { entry?: unknown[] }).entry?.length ?? 0;
+}
+
+function countDocuments(value: unknown) {
+  return (value as { documents?: unknown[] }).documents?.length ?? 0;
+}
+
+function buildEvidenceProofRows(evidence: EvidenceResult) {
+  return [...evidence.matched, ...evidence.missing].map((item) => ({
+    id: `evidence:${item.requirementId}`,
+    label: item.label,
+    source: item.source ?? "not_ingested",
+    status: item.status,
+    value: item.source ?? "Missing required synthetic evidence"
+  }));
+}
+
+function buildRoiProofRows(roi: {
+  transactionCostSavingsUsd?: number;
+  minutesSavedBaseline?: number;
+  bestCaseTimeSavedMinutes?: number;
+}) {
+  return [
+    {
+      id: "roi:transaction_cost_savings",
+      label: "Transaction cost savings",
+      source: "config/roi.yaml",
+      status: "calculated",
+      value: roi.transactionCostSavingsUsd
+    },
+    {
+      id: "roi:baseline_minutes_saved",
+      label: "Baseline minutes saved",
+      source: "config/roi.yaml",
+      status: "calculated",
+      value: roi.minutesSavedBaseline
+    },
+    {
+      id: "roi:best_case_minutes_saved",
+      label: "Best-case minutes saved",
+      source: "config/roi.yaml",
+      status: "calculated",
+      value: roi.bestCaseTimeSavedMinutes
+    }
+  ];
+}
+
+function buildAuditPacket(input: {
+  priorAuthCase: PriorAuthCase;
+  requirements: unknown;
+  evidence: EvidenceResult;
+  roi: unknown;
+  practiceRoi: unknown;
+  audit: unknown;
+  submission: unknown;
+  proofRows: unknown[];
+}) {
+  return {
+    caseId: input.priorAuthCase.caseId,
+    patientId: input.priorAuthCase.patient.id,
+    payerId: input.priorAuthCase.payer.id,
+    serviceCode: input.priorAuthCase.requestedService.code,
+    requirements: input.requirements,
+    evidence: input.evidence,
+    roi: input.roi,
+    practiceRoi: input.practiceRoi,
+    audit: input.audit,
+    submission: input.submission,
+    proofRows: input.proofRows,
+    ...getDemoSafety()
+  };
+}
+
+async function readEhrStats(ctx: RunContext) {
+  if (ctx.urls.ehr.internal) return getInternalDemoStats().ehr;
+  return fetchJson(ctx.urls.ehr.stats().fetchUrl).catch(() => null);
+}
+
+async function readPayerStats(ctx: RunContext) {
+  if (ctx.urls.payer.internal) return getInternalDemoStats().payer;
+  return fetchJson(ctx.urls.payer.stats().fetchUrl).catch(() => null);
+}
+
 async function emit(
   ctx: RunContext,
   event: Omit<PriorAuthRunEvent, "id" | "runId" | "caseId" | "timestamp">
 ) {
-  ingestRunEvent(
-    {
-      ...event,
-      id: randomUUID(),
-      runId: ctx.runId,
-      caseId: ctx.caseId,
-      timestamp: new Date().toISOString()
-    },
-    ctx.scenario
-  );
+  const runEvent = {
+    ...event,
+    id: randomUUID(),
+    runId: ctx.runId,
+    caseId: ctx.caseId,
+    timestamp: new Date().toISOString()
+  };
+
+  if (ctx.persistEvents) {
+    ingestRunEvent(runEvent, ctx.scenario);
+  }
+
+  await ctx.onEvent?.(runEvent);
 }
 
 async function runStep<T>(
@@ -127,6 +225,7 @@ async function runStep<T>(
       durationMs: Date.now() - started,
       details: {
         ...summarizeForUi(result),
+        ...(meta.details?.(result) ?? {}),
         toolCall: {
           ...runningToolCall,
           status: "passed",
@@ -195,23 +294,46 @@ export async function runElectronicPriorAuthDemo(input: {
   runId: string;
   caseId: string;
   scenario: PriorAuthScenario;
+  origin?: string;
+  onEvent?: (event: PriorAuthRunEvent) => void | Promise<void>;
+  persistEvents?: boolean;
+  demoDelayMs?: number;
 }) {
-  const ehrBaseUrl = process.env.EHR_API_URL ?? "http://localhost:4001";
-  const payerBaseUrl = process.env.PAYER_API_URL ?? "http://localhost:4002";
   const ctx: RunContext = {
     runId: input.runId,
     caseId: input.caseId,
     scenario: input.scenario,
-    demoDelayMs: getDemoStepDelayMs()
+    demoDelayMs: input.demoDelayMs ?? getDemoStepDelayMs(),
+    urls: getDemoWorkflowUrls(input.origin),
+    onEvent: input.onEvent,
+    persistEvents: input.persistEvents ?? true
   };
 
   await emit(ctx, {
     phase: "start",
     label:
       input.scenario === "complete"
-        ? "Run complete electronic prior-auth case"
-        : "Run incomplete documentation case",
-    status: "info"
+        ? "Start complete electronic prior-auth demo"
+        : "Check missing evidence gaps",
+    status: "info",
+    details: {
+      agents: [
+        {
+          id: "trusted-priorauth-agent",
+          name: "TrustedPriorAuthAgent",
+          role: "administrative_prior_authorization",
+          scopes: requiredScopes
+        }
+      ],
+      endpoints: {
+        ehr: ctx.urls.ehr.baseDisplayUrl,
+        payer: ctx.urls.payer.baseDisplayUrl,
+        stream: ctx.urls.studio.ndjsonStream
+      },
+      safety: getDemoSafety(),
+      summary:
+        "Synthetic-only administrative prior-authorization workflow. No medical decisions are made."
+    }
   });
 
   const priorAuthCase = await runStep(
@@ -258,16 +380,27 @@ export async function runElectronicPriorAuthDemo(input: {
         signatureValid: result.signatureValid,
         delegationValid: result.delegationValid,
         scopes: result.scopes
+      }),
+      details: (result) => ({
+        agent: {
+          id: result.agentId,
+          name: "TrustedPriorAuthAgent",
+          role: "administrative_prior_authorization",
+          signatureValid: result.signatureValid,
+          delegationValid: result.delegationValid,
+          scopes: result.scopes,
+          ...getDemoSafety()
+        }
       })
     }
   );
 
-  const patientUrl = `${ehrBaseUrl}/fhir/Patient/${priorAuthCase.patient.id}`;
+  const patientUrl = ctx.urls.ehr.patient(priorAuthCase.patient.id);
   const patient = await runStep(
     ctx,
     "fetch_patient",
     "Fetch patient demographics from synthetic EHR",
-    async () => fetchJson(patientUrl),
+    async () => fetchJson(patientUrl.fetchUrl),
     {
       toolCall: {
         name: "fetchEhrResource",
@@ -277,19 +410,28 @@ export async function runElectronicPriorAuthDemo(input: {
         label: "EHR Patient request",
         source: "ehr",
         method: "GET",
-        url: patientUrl
+        url: patientUrl.displayUrl
       },
       summarize: (result) =>
-        `Fetched synthetic patient ${(result as { id?: string }).id ?? priorAuthCase.patient.id}.`
+        `Fetched synthetic patient ${(result as { id?: string }).id ?? priorAuthCase.patient.id}.`,
+      details: (result) => ({
+        ingestedData: {
+          source: "ehr",
+          resourceType: "Patient",
+          records: 1,
+          patientId: (result as { id?: string }).id ?? priorAuthCase.patient.id,
+          ...getDemoSafety()
+        }
+      })
     }
   );
 
-  const conditionUrl = `${ehrBaseUrl}/fhir/Condition?patient=${priorAuthCase.patient.id}`;
+  const conditionUrl = ctx.urls.ehr.conditions(priorAuthCase.patient.id);
   const conditions = await runStep(
     ctx,
     "fetch_conditions",
     "Fetch diagnosis list",
-    async () => fetchJson(conditionUrl),
+    async () => fetchJson(conditionUrl.fetchUrl),
     {
       toolCall: {
         name: "fetchEhrResource",
@@ -299,19 +441,28 @@ export async function runElectronicPriorAuthDemo(input: {
         label: "EHR Condition request",
         source: "ehr",
         method: "GET",
-        url: conditionUrl
+        url: conditionUrl.displayUrl
       },
       summarize: (result) =>
-        `Found ${(result as { entry?: unknown[] }).entry?.length ?? 0} diagnosis resources.`
+        `Found ${countBundleEntries(result)} diagnosis resources.`,
+      details: (result) => ({
+        ingestedData: {
+          source: "ehr",
+          resourceType: "Condition",
+          records: countBundleEntries(result),
+          patientId: priorAuthCase.patient.id,
+          ...getDemoSafety()
+        }
+      })
     }
   );
 
-  const medicationUrl = `${ehrBaseUrl}/fhir/MedicationRequest?patient=${priorAuthCase.patient.id}`;
+  const medicationUrl = ctx.urls.ehr.medications(priorAuthCase.patient.id);
   const medications = await runStep(
     ctx,
     "fetch_medications",
     "Fetch active medication list",
-    async () => fetchJson(medicationUrl),
+    async () => fetchJson(medicationUrl.fetchUrl),
     {
       toolCall: {
         name: "fetchEhrResource",
@@ -324,19 +475,31 @@ export async function runElectronicPriorAuthDemo(input: {
         label: "EHR MedicationRequest request",
         source: "ehr",
         method: "GET",
-        url: medicationUrl
+        url: medicationUrl.displayUrl
       },
       summarize: (result) =>
-        `Found ${(result as { entry?: unknown[] }).entry?.length ?? 0} medication resources.`
+        `Found ${countBundleEntries(result)} medication resources.`,
+      details: (result) => ({
+        ingestedData: {
+          source: "ehr",
+          resourceType: "MedicationRequest",
+          records: countBundleEntries(result),
+          patientId: priorAuthCase.patient.id,
+          ...getDemoSafety()
+        }
+      })
     }
   );
 
-  const observationUrl = `${ehrBaseUrl}/fhir/Observation?patient=${priorAuthCase.patient.id}&scenario=${input.scenario}`;
+  const observationUrl = ctx.urls.ehr.observations(
+    priorAuthCase.patient.id,
+    input.scenario
+  );
   const observations = await runStep(
     ctx,
     "fetch_observations",
     "Fetch recent clinical observations",
-    async () => fetchJson(observationUrl),
+    async () => fetchJson(observationUrl.fetchUrl),
     {
       toolCall: {
         name: "fetchEhrResource",
@@ -350,19 +513,32 @@ export async function runElectronicPriorAuthDemo(input: {
         label: "EHR Observation request",
         source: "ehr",
         method: "GET",
-        url: observationUrl
+        url: observationUrl.displayUrl
       },
       summarize: (result) =>
-        `Found ${(result as { entry?: unknown[] }).entry?.length ?? 0} recent observation resources.`
+        `Found ${countBundleEntries(result)} recent observation resources.`,
+      details: (result) => ({
+        ingestedData: {
+          source: "ehr",
+          resourceType: "Observation",
+          records: countBundleEntries(result),
+          patientId: priorAuthCase.patient.id,
+          scenario: input.scenario,
+          ...getDemoSafety()
+        }
+      })
     }
   );
 
-  const documentsUrl = `${ehrBaseUrl}/documents?patient=${priorAuthCase.patient.id}&scenario=${input.scenario}`;
+  const documentsUrl = ctx.urls.ehr.documents(
+    priorAuthCase.patient.id,
+    input.scenario
+  );
   const documents = await runStep(
     ctx,
     "fetch_documents",
     "Fetch available supporting documents",
-    async () => fetchJson(documentsUrl),
+    async () => fetchJson(documentsUrl.fetchUrl),
     {
       toolCall: {
         name: "fetchEhrDocuments",
@@ -372,14 +548,24 @@ export async function runElectronicPriorAuthDemo(input: {
         label: "EHR documents request",
         source: "ehr",
         method: "GET",
-        url: documentsUrl
+        url: documentsUrl.displayUrl
       },
       summarize: (result) =>
-        `Found ${(result as { documents?: unknown[] }).documents?.length ?? 0} supporting documents.`
+        `Found ${countDocuments(result)} supporting documents.`,
+      details: (result) => ({
+        ingestedData: {
+          source: "ehr",
+          resourceType: "DocumentReference",
+          records: countDocuments(result),
+          patientId: priorAuthCase.patient.id,
+          scenario: input.scenario,
+          ...getDemoSafety()
+        }
+      })
     }
   );
 
-  const requirementsUrl = `${payerBaseUrl}/prior-auth/requirements`;
+  const requirementsUrl = ctx.urls.payer.requirements();
   const requirementsBody = {
     payerId: priorAuthCase.payer.id,
     memberId: priorAuthCase.patient.memberId,
@@ -391,7 +577,7 @@ export async function runElectronicPriorAuthDemo(input: {
     "discover_payer_requirements",
     "Discover payer documentation requirements",
     async () => ({
-      requirements: await postJson(requirementsUrl, requirementsBody)
+      requirements: await postJson(requirementsUrl.fetchUrl, requirementsBody)
     }),
     {
       toolCall: {
@@ -402,12 +588,22 @@ export async function runElectronicPriorAuthDemo(input: {
         label: "Payer requirements request",
         source: "payer",
         method: "POST",
-        url: requirementsUrl,
+        url: requirementsUrl.displayUrl,
         requestBody: requirementsBody
       },
       apiResponse: (result) => result.requirements,
       summarize: (result) =>
-        `Discovered ${result.requirements.requiredEvidence.length} required evidence items.`
+        `Discovered ${result.requirements.requiredEvidence.length} required evidence items.`,
+      details: (result) => ({
+        ingestedData: {
+          source: "payer",
+          resourceType: "PayerRequirements",
+          records: result.requirements.requiredEvidence.length,
+          payer: result.requirements.payer,
+          serviceCode: result.requirements.serviceCode,
+          ...getDemoSafety()
+        }
+      })
     }
   ).then((result) => result.requirements);
 
@@ -445,6 +641,16 @@ export async function runElectronicPriorAuthDemo(input: {
         complete: result.evidence.complete,
         matched: result.evidence.matched.length,
         missing: result.evidence.missing.map((item) => item.requirementId)
+      }),
+      details: (result) => ({
+        proofRows: buildEvidenceProofRows(result.evidence),
+        ingestedData: {
+          source: "core",
+          resourceType: "EvidenceResult",
+          records: result.evidence.matched.length + result.evidence.missing.length,
+          complete: result.evidence.complete,
+          ...getDemoSafety()
+        }
       })
     }
   ).then((result) => result.evidence);
@@ -474,9 +680,29 @@ export async function runElectronicPriorAuthDemo(input: {
         toolOutput: (result) => ({
           transactionCostSavingsUsd: result.roi.transactionCostSavingsUsd,
           minutesSavedBaseline: result.roi.minutesSavedBaseline
+        }),
+        details: (result) => ({
+          proofRows: buildRoiProofRows(result.roi),
+          ingestedData: {
+            source: "core",
+            resourceType: "RoiCalculation",
+            records: 1,
+            roiSource: result.roiSource,
+            ...getDemoSafety()
+          }
         })
       }
     );
+    const blockedSubmission = {
+      submitted: false,
+      status: "not_submitted",
+      reason: "Missing required evidence",
+      missingEvidence: evidence.missing.map((item) => item.requirementId)
+    };
+    const blockedProofRows = [
+      ...buildEvidenceProofRows(evidence),
+      ...buildRoiProofRows(roi.roi)
+    ];
     const audit = await runStep(
       ctx,
       "write_audit",
@@ -505,14 +731,37 @@ export async function runElectronicPriorAuthDemo(input: {
           auditId: result.audit.auditId,
           evidenceHash: result.audit.evidenceHash,
           roiHash: result.audit.roiHash
+        }),
+        details: (result) => ({
+          auditPacket: buildAuditPacket({
+            priorAuthCase,
+            requirements,
+            evidence,
+            roi: roi.roi,
+            practiceRoi: roi.practiceRoi,
+            audit: result.audit,
+            submission: blockedSubmission,
+            proofRows: blockedProofRows
+          })
         })
       }
     ).then((result) => result.audit);
 
     const [ehrStats, payerStats] = await Promise.all([
-      fetchJson(`${ehrBaseUrl}/stats`).catch(() => null),
-      fetchJson(`${payerBaseUrl}/stats`).catch(() => null)
+      readEhrStats(ctx),
+      readPayerStats(ctx)
     ]);
+    const blockedSubmitUrl = ctx.urls.payer.submit();
+    const auditPacket = buildAuditPacket({
+      priorAuthCase,
+      requirements,
+      evidence,
+      roi: roi.roi,
+      practiceRoi: roi.practiceRoi,
+      audit,
+      submission: blockedSubmission,
+      proofRows: blockedProofRows
+    });
 
     await emit(ctx, {
       phase: "blocked",
@@ -523,6 +772,8 @@ export async function runElectronicPriorAuthDemo(input: {
         roi: roi.roi,
         practiceRoi: roi.practiceRoi,
         audit,
+        auditPacket,
+        proofRows: blockedProofRows,
         ehrStats,
         payerStats,
         toolCall: {
@@ -542,23 +793,15 @@ export async function runElectronicPriorAuthDemo(input: {
           label: "Payer prior-auth submission",
           source: "payer",
           method: "POST",
-          url: `${payerBaseUrl}/prior-auth/submit`,
+          url: blockedSubmitUrl.displayUrl,
           status: "blocked",
           requestBody: null,
-          responseBody: {
-            submitted: false,
-            reason: "Missing required evidence",
-            missingEvidence: evidence.missing.map((item) => item.requirementId)
-          },
+          responseBody: blockedSubmission,
           summary: "No payer submission was sent because evidence is incomplete."
         } satisfies ApiExchange,
         summary: "Submission blocked. Human review required.",
-        submission: {
-          submitted: false,
-          status: "not_submitted",
-          reason: "Missing required evidence",
-          missingEvidence: evidence.missing.map((item) => item.requirementId)
-        }
+        submission: blockedSubmission,
+        safety: getDemoSafety()
       }
     });
 
@@ -585,17 +828,28 @@ export async function runElectronicPriorAuthDemo(input: {
       },
       summarize: (result) =>
         `Built package with ${(result.authPackage as { evidence?: unknown[] }).evidence?.length ?? 0} evidence references.`,
-      toolOutput: (result) => result.authPackage as Record<string, unknown>
+      toolOutput: (result) => result.authPackage as Record<string, unknown>,
+      details: (result) => ({
+        ingestedData: {
+          source: "core",
+          resourceType: "PriorAuthPackage",
+          records:
+            (result.authPackage as { evidence?: unknown[] }).evidence?.length ??
+            0,
+          caseId: priorAuthCase.caseId,
+          ...getDemoSafety()
+        }
+      })
     }
   ).then((result) => result.authPackage);
 
-  const submitUrl = `${payerBaseUrl}/prior-auth/submit`;
+  const submitUrl = ctx.urls.payer.submit();
   const submission = await runStep(
     ctx,
     "submit_prior_auth",
     "Submit electronic prior authorization to payer API",
     async () => ({
-      submission: await postJson(submitUrl, authPackage)
+      submission: await postJson(submitUrl.fetchUrl, authPackage)
     }),
     {
       toolCall: {
@@ -609,12 +863,23 @@ export async function runElectronicPriorAuthDemo(input: {
         label: "Payer prior-auth submission",
         source: "payer",
         method: "POST",
-        url: submitUrl,
+        url: submitUrl.displayUrl,
         requestBody: authPackage
       },
       apiResponse: (result) => result.submission,
       summarize: (result) =>
-        `Submitted package. PriorAuth ID: ${(result.submission as { priorAuthId?: string }).priorAuthId}; decision: ${(result.submission as { decision?: string }).decision}.`
+        `Submitted package. PriorAuth ID: ${(result.submission as { priorAuthId?: string }).priorAuthId}; decision: ${(result.submission as { decision?: string }).decision}.`,
+      details: (result) => ({
+        ingestedData: {
+          source: "payer",
+          resourceType: "PriorAuthSubmission",
+          records: 1,
+          priorAuthId: (result.submission as { priorAuthId?: string })
+            .priorAuthId,
+          decision: (result.submission as { decision?: string }).decision,
+          ...getDemoSafety()
+        }
+      })
     }
   ).then((result) => result.submission);
 
@@ -644,9 +909,23 @@ export async function runElectronicPriorAuthDemo(input: {
         transactionCostSavingsUsd: result.roi.transactionCostSavingsUsd,
         minutesSavedBaseline: result.roi.minutesSavedBaseline,
         bestCaseTimeSavedMinutes: result.roi.bestCaseTimeSavedMinutes
+      }),
+      details: (result) => ({
+        proofRows: buildRoiProofRows(result.roi),
+        ingestedData: {
+          source: "core",
+          resourceType: "RoiCalculation",
+          records: 1,
+          roiSource: result.roiSource,
+          ...getDemoSafety()
+        }
       })
     }
   );
+  const completeProofRows = [
+    ...buildEvidenceProofRows(evidence),
+    ...buildRoiProofRows(roi.roi)
+  ];
 
   const audit = await runStep(
     ctx,
@@ -678,14 +957,36 @@ export async function runElectronicPriorAuthDemo(input: {
         auditId: result.audit.auditId,
         evidenceHash: result.audit.evidenceHash,
         roiHash: result.audit.roiHash
+      }),
+      details: (result) => ({
+        auditPacket: buildAuditPacket({
+          priorAuthCase,
+          requirements,
+          evidence,
+          roi: roi.roi,
+          practiceRoi: roi.practiceRoi,
+          audit: result.audit,
+          submission,
+          proofRows: completeProofRows
+        })
       })
     }
   ).then((result) => result.audit);
 
   const [ehrStats, payerStats] = await Promise.all([
-    fetchJson(`${ehrBaseUrl}/stats`).catch(() => null),
-    fetchJson(`${payerBaseUrl}/stats`).catch(() => null)
+    readEhrStats(ctx),
+    readPayerStats(ctx)
   ]);
+  const auditPacket = buildAuditPacket({
+    priorAuthCase,
+    requirements,
+    evidence,
+    roi: roi.roi,
+    practiceRoi: roi.practiceRoi,
+    audit,
+    submission,
+    proofRows: completeProofRows
+  });
 
   await emit(ctx, {
     phase: "complete",
@@ -700,8 +1001,11 @@ export async function runElectronicPriorAuthDemo(input: {
       roi: roi.roi,
       practiceRoi: roi.practiceRoi,
       audit,
+      auditPacket,
+      proofRows: completeProofRows,
       ehrStats,
-      payerStats
+      payerStats,
+      safety: getDemoSafety()
     }
   });
 }

@@ -23,7 +23,8 @@ export async function POST(request: Request) {
   void runElectronicPriorAuthDemo({
     runId,
     caseId: parsed.data.caseId,
-    scenario: parsed.data.scenario
+    scenario: parsed.data.scenario,
+    origin: new URL(request.url).origin
   });
 
   return Response.json({

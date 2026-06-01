@@ -32,7 +32,7 @@ export function PriorAuthRunControls({
           className="inline-flex min-h-12 items-center justify-center gap-2 rounded-md border border-emerald-400/40 bg-emerald-400/10 px-4 py-3 text-sm font-semibold text-emerald-50 transition hover:bg-emerald-400/20 disabled:cursor-not-allowed disabled:opacity-50"
         >
           <CheckCircle2 className="h-4 w-4" />
-          {loading === "complete" ? "Running complete ePA case" : "Run complete ePA case"}
+          {loading === "complete" ? "Starting live demo" : "Start live demo"}
         </button>
         <button
           type="button"
@@ -41,7 +41,7 @@ export function PriorAuthRunControls({
           className="inline-flex min-h-12 items-center justify-center gap-2 rounded-md border border-amber-400/40 bg-amber-400/10 px-4 py-3 text-sm font-semibold text-amber-50 transition hover:bg-amber-400/20 disabled:cursor-not-allowed disabled:opacity-50"
         >
           <AlertTriangle className="h-4 w-4" />
-          {loading === "incomplete" ? "Checking missing evidence" : "Run incomplete documentation case"}
+          {loading === "incomplete" ? "Checking gaps" : "Check gaps"}
         </button>
         <button
           type="button"

@@ -1,20 +1,31 @@
 import { clearRuns } from "@/lib/live-events";
+import {
+  getDemoWorkflowUrls,
+  resetInternalDemoStats
+} from "@/lib/internal-demo-api";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-export async function POST() {
+export async function POST(request: Request) {
   clearRuns();
-  const ehrUrl = process.env.EHR_API_URL ?? "http://localhost:4001";
-  const payerUrl = process.env.PAYER_API_URL ?? "http://localhost:4002";
+  const urls = getDemoWorkflowUrls(new URL(request.url).origin);
+
+  if (urls.ehr.internal || urls.payer.internal) {
+    resetInternalDemoStats();
+  }
 
   await Promise.all([
-    fetch(`${ehrUrl}/stats/reset`, { method: "POST" }).catch(
-      () => null
-    ),
-    fetch(`${payerUrl}/stats/reset`, { method: "POST" }).catch(
-      () => null
-    )
+    urls.ehr.internal
+      ? Promise.resolve(null)
+      : fetch(urls.ehr.resetStats().fetchUrl, { method: "POST" }).catch(
+          () => null
+        ),
+    urls.payer.internal
+      ? Promise.resolve(null)
+      : fetch(urls.payer.resetStats().fetchUrl, { method: "POST" }).catch(
+          () => null
+        )
   ]);
 
   return Response.json({ ok: true });

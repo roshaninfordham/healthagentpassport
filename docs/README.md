@@ -5,7 +5,7 @@ boundary, market position, and production roadmap.
 
 ## Start Here
 
-1. [Quickstart](quickstart.md) gets the three-service demo running.
+1. [Quickstart](quickstart.md) gets the hosted-ready demo running.
 2. [Demo Guide](demo-guide.md) gives the live presenter flow.
 3. [Architecture](architecture.md) documents the system design with Mermaid.
 4. [API Reference](api-reference.md) lists Studio, EHR, payer, and CLI surfaces.
@@ -30,11 +30,11 @@ flowchart TD
 
 ## Product Summary
 
-PriorAuth Passport is a real-time electronic prior authorization ROI agent for
+PriorAuth Passport is a real-time electronic prior authorization agent for
 provider practices and health-tech API developers. It turns a prior-auth request
 into a structured workflow: discover payer requirements, gather synthetic EHR
 evidence, block incomplete packages, submit complete packages, calculate ROI, and
-write audit hashes.
+write a Prior Authorization Audit Packet with proof rows and hashes.
 
 ## Diagram Checks
 

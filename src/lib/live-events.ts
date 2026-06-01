@@ -18,6 +18,10 @@ export type PriorAuthRunResult = {
   roi?: unknown;
   practiceRoi?: unknown;
   audit?: unknown;
+  auditPacket?: unknown;
+  proofRows?: unknown[];
+  dataSources?: unknown;
+  workflowSummary?: unknown;
   ehrStats?: unknown;
   payerStats?: unknown;
   toolCalls?: ToolCallRecord[];
@@ -68,6 +72,10 @@ function extractResult(event: PriorAuthRunEvent): Partial<PriorAuthRunResult> {
     roi: event.details.roi,
     practiceRoi: event.details.practiceRoi,
     audit: event.details.audit,
+    auditPacket: event.details.auditPacket,
+    proofRows: event.details.proofRows as unknown[] | undefined,
+    dataSources: event.details.dataSources,
+    workflowSummary: event.details.workflowSummary,
     ehrStats: event.details.ehrStats,
     payerStats: event.details.payerStats
   };

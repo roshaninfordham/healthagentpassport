@@ -11,9 +11,9 @@ gantt
   title PriorAuth Passport Roadmap
   dateFormat  YYYY-MM-DD
   section Demo
-  Local EHR + payer APIs           :done, 2026-06-01, 1d
+  Hosted internal APIs             :done, 2026-06-01, 1d
   Studio realtime workflow         :done, 2026-06-01, 1d
-  ROI + audit proof                :done, 2026-06-01, 1d
+  ROI + audit packet proof         :done, 2026-06-01, 1d
   section Pilot
   Durable run store                :active, 2026-06-02, 14d
   Authenticated service clients    :2026-06-10, 21d
@@ -29,9 +29,9 @@ gantt
 
 | Demo component | Production replacement |
 | --- | --- |
-| In-memory event store | Postgres, Kafka, or durable workflow event table |
-| Sample EHR API | FHIR server connector with OAuth/OIDC |
-| Sample payer API | Payer-specific or standards-based prior-auth adapter |
+| Internal synthetic EHR routes | FHIR server connector with OAuth/OIDC |
+| Internal synthetic payer routes | Payer-specific or standards-based prior-auth adapter |
+| In-memory run state | Postgres, Kafka, or durable workflow event table |
 | Static agent file | KMS-backed service identity |
 | Local YAML config | Versioned policy bundle with review workflow |
 | Synthetic audit hashes | Immutable audit store with retention policy |

@@ -1,16 +1,21 @@
 import { getDemoStepDelayMs } from "@/lib/demo-config";
+import { getDemoWorkflowUrls } from "@/lib/internal-demo-api";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+export async function GET(request: Request) {
+  const urls = getDemoWorkflowUrls(new URL(request.url).origin);
+
   return Response.json({
     ok: true,
     name: "PriorAuth Passport",
     demoMode: {
-      ehr: process.env.EHR_API_URL || "http://localhost:4001",
-      payer: process.env.PAYER_API_URL || "http://localhost:4002",
+      ehr: urls.ehr.baseDisplayUrl,
+      payer: urls.payer.baseDisplayUrl,
+      stream: urls.studio.ndjsonStream,
       stepDelayMs: getDemoStepDelayMs(),
-      syntheticOnly: true
+      syntheticOnly: true,
+      noMedicalDecisions: true
     }
   });
 }

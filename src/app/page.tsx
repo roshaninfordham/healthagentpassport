@@ -1,12 +1,15 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { toast } from "sonner";
 import { DeveloperModePanel } from "@/components/dashboard/DeveloperModePanel";
-import { LandingPageExplainer } from "@/components/dashboard/LandingPageExplainer";
 import { ManualVsElectronicPanel } from "@/components/dashboard/ManualVsElectronicPanel";
 import { MarketBenchmarksPanel } from "@/components/dashboard/MarketBenchmarksPanel";
 import { MarketPainPanel } from "@/components/dashboard/MarketPainPanel";
+import {
+  LiveDemoWorkspace,
+  MetricFirstLanding
+} from "@/components/dashboard/MetricFirstDemo";
 import { PriorAuthApiStatsPanel } from "@/components/dashboard/PriorAuthApiStatsPanel";
 import { PriorAuthAuditLedger } from "@/components/dashboard/PriorAuthAuditLedger";
 import { PriorAuthCaseCard } from "@/components/dashboard/PriorAuthCaseCard";
@@ -77,6 +80,11 @@ function mergeResult(
     audit: details.audit ?? result.audit,
     ehrStats: details.ehrStats ?? result.ehrStats,
     payerStats: details.payerStats ?? result.payerStats,
+    auditPacket: details.auditPacket ?? result.auditPacket,
+    dataSources: details.dataSources ?? result.dataSources,
+    proofRows:
+      (details.proofRows as PriorAuthRunResult["proofRows"]) ?? result.proofRows,
+    workflowSummary: details.workflowSummary ?? result.workflowSummary,
     toolCalls: toolCall
       ? [
           ...(result.toolCalls ?? []).filter((item) => item.id !== toolCall.id),
@@ -98,54 +106,10 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState<Tab>("overview");
   const [loading, setLoading] = useState<Scenario | null>(null);
   const [resetting, setResetting] = useState(false);
-  const [currentRunId, setCurrentRunId] = useState<string | null>(null);
   const [events, setEvents] = useState<PriorAuthRunEvent[]>([]);
   const [result, setResult] = useState<PriorAuthRunResult>({});
   const [refreshKey, setRefreshKey] = useState(0);
   const currentRunIdRef = useRef<string | null>(null);
-
-  useEffect(() => {
-    currentRunIdRef.current = currentRunId;
-  }, [currentRunId]);
-
-  useEffect(() => {
-    const source = new EventSource("/api/events/stream");
-
-    source.onmessage = (message) => {
-      const event = JSON.parse(message.data) as PriorAuthRunEvent;
-      const runId = currentRunIdRef.current;
-
-      if (runId && event.runId !== runId) return;
-
-      setEvents((items) => {
-        if (items.some((item) => item.id === event.id)) return items;
-        return [...items, event];
-      });
-      setResult((previous) => mergeResult(previous, event.details));
-
-      if (
-        event.phase === "complete" ||
-        event.phase === "blocked" ||
-        event.status === "failed"
-      ) {
-        setLoading(null);
-        setRefreshKey((key) => key + 1);
-        if (event.phase === "complete") {
-          toast.success("Electronic prior authorization submitted.");
-        } else if (event.phase === "blocked") {
-          toast.warning("Draft saved. Missing evidence blocked submission.");
-        }
-      }
-    };
-
-    source.onerror = () => {
-      toast.error("Studio event stream disconnected.");
-    };
-
-    return () => {
-      source.close();
-    };
-  }, []);
 
   async function runScenario(scenario: Scenario) {
     setActiveTab("workflow");
@@ -157,34 +121,69 @@ export default function Home() {
     });
     setLoading(scenario);
     currentRunIdRef.current = null;
-    setCurrentRunId(null);
     setEvents([]);
     setResult({});
 
     try {
-      const response = await fetch("/api/demo/run", {
+      const response = await fetch("/api/demo/stream", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ scenario, caseId: "pa-case-001" })
+        body: JSON.stringify({ scenario })
       });
-      const json = (await response.json()) as {
-        runId?: string;
-        error?: string;
-      };
 
-      if (!response.ok || !json.runId) {
-        throw new Error(json.error || "Demo run failed.");
+      if (!response.ok || !response.body) {
+        throw new Error("Streaming demo failed to start.");
       }
 
-      setCurrentRunId(json.runId);
       toast.success(
         scenario === "complete"
           ? "Running complete electronic prior-auth case."
           : "Running incomplete documentation guardrail."
       );
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() ?? "";
+
+        for (const line of lines) {
+          if (!line.trim()) continue;
+          const event = JSON.parse(line) as PriorAuthRunEvent;
+
+          if (!currentRunIdRef.current) {
+            currentRunIdRef.current = event.runId;
+          }
+
+          setEvents((items) => {
+            if (items.some((item) => item.id === event.id)) return items;
+            return [...items, event];
+          });
+          setResult((previous) => mergeResult(previous, event.details));
+
+          if (event.status === "failed") {
+            throw new Error(event.label);
+          }
+
+          if (event.phase === "complete") {
+            toast.success("Audit packet generated.");
+          } else if (event.phase === "blocked") {
+            toast.warning("Audit packet generated. Human review required.");
+          }
+        }
+      }
+
+      setRefreshKey((key) => key + 1);
     } catch (error) {
       console.error(error);
       toast.error(error instanceof Error ? error.message : "Demo run failed.");
+    } finally {
       setLoading(null);
     }
   }
@@ -203,7 +202,7 @@ export default function Home() {
         throw new Error(json.error || "Reset failed.");
       }
 
-      setCurrentRunId(null);
+      currentRunIdRef.current = null;
       setEvents([]);
       setResult({});
       setRefreshKey((key) => key + 1);
@@ -229,10 +228,23 @@ export default function Home() {
   return (
     <main className="min-h-screen text-slate-50">
       <div className="mx-auto flex max-w-7xl flex-col gap-5 px-4 py-5 sm:px-6 lg:px-8">
-        <LandingPageExplainer
+        <MetricFirstLanding
+          result={result}
+          events={events}
           loading={loading}
+          resetting={resetting}
           onRun={runScenario}
+          onReset={resetDemo}
           onDeveloperMode={() => openStudio("developer")}
+        />
+
+        <LiveDemoWorkspace
+          result={result}
+          events={events}
+          loading={loading}
+          resetting={resetting}
+          onRun={runScenario}
+          onReset={resetDemo}
         />
 
         <nav
