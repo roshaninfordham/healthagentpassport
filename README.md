@@ -28,6 +28,28 @@ Trusted agent: allowed.
 Low-trust or suspicious agent: blocked before touching the health API.
 ```
 
+## Market Positioning
+
+HealthAgent Passport is the healthcare-specific policy brain between agent
+identity, agent trust rails, generic gateways, and protected health APIs.
+
+```mermaid
+flowchart TD
+  Agent[AI Agent] --> Identity[Auth0 / Okta<br/>agent identity]
+  Identity --> Valiron[Valiron<br/>trust + payment signal]
+  Valiron --> Passport[HealthAgent Passport<br/>patient consent + FHIR policy + sandbox verdict]
+  Passport --> Gateway[Kong / Agent Gateway<br/>routing + rate limits]
+  Gateway --> APIs[FHIR / payer / pharmacy APIs]
+
+  classDef passport fill:#064e3b,stroke:#34d399,color:#ecfdf5;
+  class Passport passport;
+```
+
+```txt
+Generic agent gateways know traffic.
+HealthAgent Passport knows healthcare permission.
+```
+
 ## Architecture At A Glance
 
 ```mermaid
@@ -84,6 +106,7 @@ sequenceDiagram
 flowchart TB
   subgraph UI["Dashboard"]
     Hero[Hero + Safety Badges]
+    Ecosystem[Market Positioning]
     Passport[Patient Passport]
     Flow[Live Trust Flow]
     Decision[Decision Panel]
@@ -212,6 +235,7 @@ docs/                     Architecture, security, API, demo, and gVisor docs
 
 - [Documentation Index](docs/README.md)
 - [System Architecture](docs/architecture.md)
+- [Market Positioning](docs/market-positioning.md)
 - [API Reference](docs/api-reference.md)
 - [Security Model](docs/security-model.md)
 - [Demo Guide](docs/demo-guide.md)

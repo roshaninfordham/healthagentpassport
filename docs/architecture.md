@@ -65,6 +65,28 @@ flowchart TB
   AuditAPI --> E
 ```
 
+## Ecosystem Boundary
+
+HealthAgent Passport can run as a standalone demo, but the intended production
+shape is an integration layer beside existing horizontal infrastructure.
+
+```mermaid
+flowchart TD
+  Agent[AI Agent] --> Identity[Identity provider<br/>Auth0 / Okta]
+  Identity --> TrustRail[Agent trust rail<br/>Valiron or equivalent]
+  TrustRail --> Passport[HealthAgent Passport<br/>healthcare authorization brain]
+  Passport --> ApiGateway[API gateway<br/>Kong / agentgateway / Apigee]
+  ApiGateway --> HealthApi[Healthcare API<br/>FHIR / payer / pharmacy]
+
+  Passport --> Consent[Patient consent graph]
+  Passport --> Scopes[FHIR / SMART scope policy]
+  Passport --> Sandbox[Healthcare misuse sandbox]
+  Passport --> Audit[Compliance audit ledger]
+
+  classDef passport fill:#064e3b,stroke:#34d399,color:#ecfdf5;
+  class Passport passport;
+```
+
 ## Request Lifecycle
 
 ```mermaid

@@ -7,13 +7,16 @@ demo operations for HealthAgent Passport.
 
 1. [System Architecture](architecture.md) explains the end-to-end design with
    Mermaid diagrams.
-2. [API Reference](api-reference.md) documents the route handlers and request
+2. [Market Positioning](market-positioning.md) explains where HealthAgent
+   Passport fits beside identity providers, agent trust rails, API gateways,
+   and healthcare APIs.
+3. [API Reference](api-reference.md) documents the route handlers and request
    payloads.
-3. [Security Model](security-model.md) maps controls to the agentic healthcare
+4. [Security Model](security-model.md) maps controls to the agentic healthcare
    threat model.
-4. [Demo Guide](demo-guide.md) gives the live demo script, checklist, and
+5. [Demo Guide](demo-guide.md) gives the live demo script, checklist, and
    troubleshooting steps.
-5. [gVisor Setup](gvisor-setup.md) explains the optional real sandbox runtime.
+6. [gVisor Setup](gvisor-setup.md) explains the optional real sandbox runtime.
 
 ## Product In One Diagram
 
@@ -41,3 +44,17 @@ flowchart LR
 - Sandbox results can downgrade trust, but cannot grant consent.
 - Denied agents never receive protected synthetic FHIR data.
 - Every allow or deny decision writes an audit event.
+
+## Positioning In One Diagram
+
+```mermaid
+flowchart TD
+  Agent[AI Agent] --> Identity[Auth0 / Okta]
+  Identity --> Trust[Valiron]
+  Trust --> Passport[HealthAgent Passport]
+  Passport --> Gateway[Kong / Agent Gateway]
+  Gateway --> APIs[FHIR / payer / pharmacy / public-health APIs]
+
+  classDef passport fill:#064e3b,stroke:#34d399,color:#ecfdf5;
+  class Passport passport;
+```

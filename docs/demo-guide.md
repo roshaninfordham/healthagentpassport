@@ -17,7 +17,8 @@ Open the local URL printed by Next.js.
 ```mermaid
 flowchart LR
   Hero[Hero: product in 10 seconds] --> Patient[Patient Passport]
-  Patient --> Controls[Demo Controls]
+  Patient --> Ecosystem[Where Passport Sits]
+  Ecosystem --> Controls[Demo Controls]
   Controls --> Trusted[Run TrustedCareAgent]
   Trusted --> Granted[ACCESS GRANTED]
   Granted --> Sketchy[Run SketchyScraperAgent]
@@ -39,6 +40,17 @@ Should it be routed to production, throttled, sandboxed, or blocked?
 ```
 
 HealthAgent Passport answers those questions before forwarding a request.
+
+## Positioning Script
+
+Use the `Where HealthAgent Passport sits` panel before running the agents.
+
+```txt
+We are not trying to replace the identity provider, API gateway, or
+agent-security vendor. Okta tells you who the agent is. Kong routes the agent.
+Valiron can score and monetize the call. HealthAgent Passport decides whether
+this agent may touch this patient's healthcare data for this task.
+```
 
 ## Trusted Agent Flow
 

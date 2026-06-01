@@ -4,6 +4,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { AuditLogTable } from "@/components/dashboard/AuditLogTable";
 import { DemoControls } from "@/components/dashboard/DemoControls";
+import { EcosystemPanel } from "@/components/dashboard/EcosystemPanel";
 import { FlowMap } from "@/components/dashboard/FlowMap";
 import { Hero } from "@/components/dashboard/Hero";
 import { LiveDecisionPanel } from "@/components/dashboard/LiveDecisionPanel";
@@ -79,6 +80,8 @@ export default function Home() {
     <main className="min-h-screen text-slate-50">
       <div className="mx-auto flex max-w-7xl flex-col gap-5 px-4 py-5 sm:px-6 lg:px-8">
         <Hero />
+
+        <EcosystemPanel />
 
         <section className="grid gap-5 lg:grid-cols-[1fr_1.8fr_1fr]">
           <PatientPassportCard refreshKey={auditRefreshKey} />
