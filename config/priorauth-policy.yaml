@@ -1,0 +1,25 @@
+version: 1
+
+product:
+  name: PriorAuth Passport
+  mode: synthetic-demo
+  safety:
+    syntheticOnly: true
+    noMedicalAdvice: true
+    noTreatmentDecisioning: true
+
+agent:
+  id: trusted-priorauth-agent
+  name: TrustedPriorAuthAgent
+  scopes:
+    - patient/Patient.read
+    - patient/Condition.read
+    - patient/MedicationRequest.read
+    - patient/Observation.read
+    - payer/PriorAuth.write
+
+workflow:
+  defaultCaseId: pa-case-001
+  ehrBaseUrl: http://localhost:4001
+  payerBaseUrl: http://localhost:4002
+  demoDelayMs: 750

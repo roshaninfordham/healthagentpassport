@@ -9,7 +9,7 @@ export default defineConfig({
   },
   webServer: {
     command:
-      "pnpm exec concurrently -n API,GATEWAY,STUDIO -c blue,green,magenta \"PORT=4101 pnpm --filter sample-health-api dev\" \"pnpm --filter @healthagent/passport-cli dev gateway --policy ./healthagent.yaml --upstream http://localhost:4101 --port 8877 --studio http://localhost:3100 --demo-delay 10\" \"GATEWAY_URL=http://localhost:8877 SAMPLE_API_URL=http://localhost:4101/health SAMPLE_API_STATS_URL=http://localhost:4101/stats pnpm exec next dev -p 3100\"",
+      "pnpm exec concurrently -n EHR,PAYER,STUDIO -c cyan,yellow,magenta \"PORT=4101 pnpm --filter sample-ehr-api dev\" \"PORT=4102 pnpm --filter sample-payer-api dev\" \"EHR_API_URL=http://localhost:4101 PAYER_API_URL=http://localhost:4102 DEMO_STEP_DELAY_MS=10 pnpm exec next dev -p 3100\"",
     url: "http://localhost:3100",
     reuseExistingServer: true,
     timeout: 120_000

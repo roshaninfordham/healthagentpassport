@@ -1,0 +1,9 @@
+{
+  "id": "sketchy-agent",
+  "name": "SketchyAgent",
+  "publicKeyPem": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEAzkt7WJSCre+F5kispw1gvmb7dbFyBvxQKWLfBBxAtSI=\n-----END PUBLIC KEY-----\n",
+  "privateKeyPem": "-----BEGIN PRIVATE KEY-----\nMC4CAQAwBQYDK2VwBCIEIO3B7hwECkS3cUyHMQh1Njx33NQ2nGsbZs1uNM6OpLM2\n-----END PRIVATE KEY-----\n",
+  "scopes": [
+    "patient/Patient.read"
+  ]
+}

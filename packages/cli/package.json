@@ -1,18 +1,18 @@
 {
-  "name": "@healthagent/passport-cli",
+  "name": "@priorauth/passport-cli",
   "version": "0.1.0",
   "type": "module",
   "bin": {
-    "healthagent": "./dist/index.js"
+    "priorauth": "./dist/index.js"
   },
   "scripts": {
     "build": "tsup src/index.ts --format esm --dts --clean",
     "dev": "tsx src/index.ts",
     "typecheck": "tsc --noEmit",
-    "test": "echo \"@healthagent/passport-cli: no package tests yet\""
+    "test": "echo \"@priorauth/passport-cli: no package tests yet\""
   },
   "dependencies": {
-    "@healthagent/passport": "workspace:*",
+    "@priorauth/passport-core": "workspace:*",
     "commander": "^14.0.2"
   },
   "devDependencies": {

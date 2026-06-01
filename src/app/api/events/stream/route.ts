@@ -1,13 +1,13 @@
 import {
   getLatestRun,
   subscribeRunEvents,
-  type RunEvent
+  type PriorAuthRunEvent
 } from "@/lib/live-events";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-function encodeSse(event: RunEvent) {
+function encodeSse(event: PriorAuthRunEvent) {
   return `data: ${JSON.stringify(event)}\n\n`;
 }
 

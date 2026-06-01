@@ -1,0 +1,19 @@
+sourceLabel: "CAQH-based demo assumptions"
+
+priorAuthorization:
+  manualProviderCostUsd: 10.97
+  electronicProviderCostUsd: 5.79
+  manualTimeMinutes: 16
+  electronicTimeMinutes: 9
+  bestCaseTimeSavedMinutes: 14
+  staffLoadedHourlyRateUsd: 35
+  industryAnnualSavingsOpportunityUsd: 515000000
+
+practice:
+  physicians: 5
+  authsPerPhysicianPerWeek: 39
+  workingWeeksPerYear: 48
+
+pricing:
+  platformFeePerAuthorizationUsd: 1.25
+  monthlySubscriptionUsd: 499

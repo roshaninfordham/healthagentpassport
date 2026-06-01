@@ -1,26 +1,34 @@
 import { expect, test } from "@playwright/test";
 
-test("trusted agent is allowed and sketchy agent is blocked", async ({ page }) => {
+test("runs complete and incomplete electronic prior-auth demo cases", async ({
+  page
+}) => {
   await page.goto("/");
 
   await expect(
-    page.getByRole("heading", { name: /where healthagent passport sits/i })
+    page.getByRole("heading", { name: /priorauth passport/i })
   ).toBeVisible();
-  await expect(page.getByText(/healthcare permission/i)).toBeVisible();
   await expect(
-    page.getByRole("heading", { name: /protect a health api in 5 minutes/i })
+    page.getByText(/Real-time electronic prior authorization infrastructure/i)
+  ).toBeVisible();
+  await expect(
+    page.getByText("$5.18 transaction delta", { exact: true })
   ).toBeVisible();
 
-  await page.getByRole("button", { name: /run trustedcareagent/i }).click();
-  await expect(page.getByText(/access granted/i)).toBeVisible();
-  await expect(page.getByText(/trusted-care-agent/i).first()).toBeVisible();
-  await expect(page.getByText(/Gateway forwarded an approved request upstream/i)).toBeVisible();
+  await page.getByRole("button", { name: /run complete epa case/i }).click();
+  await expect(page.getByText(/Electronic prior authorization workflow complete/i)).toBeVisible({
+    timeout: 20_000
+  });
+  await expect(page.getByText(/PA-DEMO-1001/i)).toBeVisible();
+  await expect(page.getByText(/pending_payer_review/i)).toBeVisible();
+  await expect(page.getByText(/Requirement lookups/i)).toBeVisible();
+  await expect(page.getByText(/Submissions/i)).toBeVisible();
 
-  await page.getByRole("button", { name: /run sketchyscraperagent/i }).click();
-  await expect(page.getByText(/access denied/i)).toBeVisible();
-  await expect(page.getByText(/sketchy-scraper-agent/i).first()).toBeVisible();
-  await expect(page.getByText(/Blocked before upstream/i).first()).toBeVisible();
-  await expect(page.getByText(/Bulk dump hits are still zero/i)).toBeVisible();
-
-  await expect(page.getByText(/Step-by-step request timeline/i)).toBeVisible();
+  await page.getByRole("button", { name: /run incomplete documentation case/i }).click();
+  await expect(
+    page.getByText(/Missing evidence detected\. Draft saved/i)
+  ).toBeVisible({ timeout: 20_000 });
+  await expect(page.getByText(/No payer submission/i)).toBeVisible();
+  await expect(page.getByText(/Recent relevant observation/i)).toBeVisible();
+  await expect(page.getByText(/Referral note/i)).toBeVisible();
 });

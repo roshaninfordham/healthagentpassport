@@ -7,116 +7,51 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model Patient {
-  id             String   @id
-  displayName    String
-  dateOfBirth    String
-  sex            String
-  syntheticLabel String   @default("SYNTHETIC_ONLY")
-  fhirBundleJson String
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+model PriorAuthCase {
+  id                   String   @id
+  patientId            String
+  patientName          String
+  memberId             String
+  providerNpi          String
+  providerName         String
+  payerId              String
+  payerName            String
+  serviceCode          String
+  serviceDisplay       String
+  diagnosisCodesJson   String
+  status               String   @default("ready_for_demo")
+  syntheticOnly        Boolean  @default(true)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
 }
 
-model AgentIdentity {
-  id              String   @id
-  displayName     String
-  kind            String
-  publicKeyPem    String
-  privateKeyPem   String?
-  valironAgentId  String?
-  walletAddress   String?
-  defaultTier     String
-  defaultRoute    String
-  onChainScore    Int
-  behaviorScore   Int
-  identityScore   Int
-  complianceScore Int
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-}
+model PriorAuthRun {
+  id            String   @id
+  caseId        String
+  scenario      String
+  status        String
+  eventCount    Int      @default(0)
+  roiJson       String?
+  evidenceJson  String?
+  submissionJson String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
-model Delegation {
-  id                String   @id
-  patientId         String
-  agentId           String
-  scopesJson        String
-  purpose           String
-  expiresAt         DateTime
-  status            String
-  canonicalPayload  String
-  delegationHash    String
-  patientSignature  String
-  solanaSignature   String?
-  solanaExplorerUrl String?
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-
-  @@index([patientId])
-  @@index([agentId])
-  @@index([delegationHash])
-}
-
-model AuditEvent {
-  id                 String   @id
-  requestId          String
-  agentId            String?
-  patientId          String?
-  method             String
-  path               String
-  decision           String
-  route              String
-  trustTier          String
-  trustScore         Int
-  reason             String
-  requiredScopesJson String
-  grantedScopesJson  String?
-  httpStatus         Int
-  latencyMs          Int
-  costMicros         Int
-  delegationHash     String?
-  requestHash        String
-  responseHash       String?
-  modelUsed          String?
-  toolCallsJson      String?
-  sandboxRunId       String?
-  sandboxRiskScore   Int?
-  sandboxVerdict     String?
-  createdAt          DateTime @default(now())
-
-  @@index([agentId])
-  @@index([patientId])
-  @@index([requestId])
+  @@index([caseId])
   @@index([createdAt])
 }
 
-model Nonce {
-  agentId   String
-  nonce     String
-  expiresAt DateTime
-  createdAt DateTime @default(now())
+model PriorAuthAuditEvent {
+  id           String   @id
+  runId        String
+  caseId       String
+  status       String
+  evidenceHash String
+  roiHash      String
+  syntheticOnly Boolean @default(true)
+  createdAt    DateTime @default(now())
 
-  @@id([agentId, nonce])
-  @@index([expiresAt])
-}
-
-model SandboxRun {
-  id                 String   @id
-  agentId            String
-  scenario           String
-  mode               String
-  runtime            String
-  riskScore          Int
-  verdict            String
-  routeImpact        String
-  observedEventsJson String
-  signalsJson        String
-  stdoutJson         String
-  stderrJson         String
-  durationMs         Int
-  error              String?
-  createdAt          DateTime @default(now())
-
-  @@index([agentId])
+  @@index([runId])
+  @@index([caseId])
   @@index([createdAt])
 }

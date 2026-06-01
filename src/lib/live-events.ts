@@ -1,104 +1,36 @@
-export type RunEventStatus =
-  | "queued"
-  | "running"
-  | "passed"
-  | "failed"
-  | "blocked"
-  | "info";
+import type {
+  EvidenceResult,
+  PayerRequirements,
+  PriorAuthCase,
+  PriorAuthRunEvent
+} from "@priorauth/passport-core";
 
-export type RunEventPhase =
-  | "receive_request"
-  | "parse_policy"
-  | "match_route_policy"
-  | "verify_agent_identity"
-  | "check_timestamp"
-  | "check_nonce_replay"
-  | "run_behavioral_sandbox"
-  | "load_patient_delegation"
-  | "check_required_scopes"
-  | "compute_trust_score"
-  | "create_payment_receipt"
-  | "fetch_upstream_api"
-  | "hash_response"
-  | "write_audit_event"
-  | "return_response";
+export type { PriorAuthRunEvent };
 
-export type RunEvent = {
-  id: string;
-  runId: string;
-  requestId: string;
-  ts: string;
-  phase: RunEventPhase;
-  label: string;
-  status: RunEventStatus;
-  durationMs?: number;
-  details?: Record<string, unknown>;
-};
-
-export type GatewayDecisionEvent = {
-  runId: string;
-  requestId: string;
-  agentId: string;
-  method: string;
-  path: string;
-  allowed: boolean;
-  blockedBeforeUpstream: boolean;
-  policy?: {
-    routeId: string;
-    requiredScopes: string[];
-  };
-  identity: {
-    signatureValid: boolean;
-    timestampFresh: boolean;
-    nonceFresh: boolean;
-  };
-  sandbox: {
-    mode: "mock" | "gvisor" | "docker";
-    riskScore: number;
-    verdict: "clean" | "watch" | "suspicious" | "block";
-    signals: string[];
-  };
-  consent: {
-    valid: boolean;
-    patientId?: string;
-    delegationHash?: string;
-    grantedScopes: string[];
-    missingScopes: string[];
-  };
-  trust: {
-    score: number;
-    tier: string;
-    route: "prod" | "prod_throttled" | "sandbox" | "sandbox_only";
-  };
-  payment: {
-    mode: "mock";
-    receiptId: string;
-    costMicros: number;
-  };
-  upstream?: {
-    called: boolean;
-    url?: string;
-    status?: number;
-    latencyMs?: number;
-    body?: unknown;
-  };
-  audit: {
-    requestHash: string;
-    responseHash?: string;
-    auditId: string;
-  };
-  reason: string;
+export type PriorAuthRunResult = {
+  priorAuthCase?: PriorAuthCase;
+  requirements?: PayerRequirements;
+  evidence?: EvidenceResult;
+  authPackage?: unknown;
+  submission?: unknown;
+  roi?: unknown;
+  practiceRoi?: unknown;
+  audit?: unknown;
+  ehrStats?: unknown;
+  payerStats?: unknown;
 };
 
 export type RunState = {
   runId: string;
-  events: RunEvent[];
-  decisions: GatewayDecisionEvent[];
+  caseId: string;
+  scenario: "complete" | "incomplete";
+  events: PriorAuthRunEvent[];
+  result: PriorAuthRunResult;
   startedAt: string;
   updatedAt: string;
 };
 
-type Listener = (event: RunEvent) => void;
+type Listener = (event: PriorAuthRunEvent) => void;
 
 type Store = {
   runs: Map<string, RunState>;
@@ -107,52 +39,57 @@ type Store = {
 };
 
 const globalForEvents = globalThis as typeof globalThis & {
-  __healthAgentEventStore?: Store;
+  __priorAuthEventStore?: Store;
 };
 
 const store =
-  globalForEvents.__healthAgentEventStore ??
+  globalForEvents.__priorAuthEventStore ??
   ({
     runs: new Map<string, RunState>(),
     latestRunId: null,
     listeners: new Set<Listener>()
   } satisfies Store);
 
-globalForEvents.__healthAgentEventStore = store;
+globalForEvents.__priorAuthEventStore = store;
 
-function extractDecision(event: RunEvent): GatewayDecisionEvent | null {
-  const decision = event.details?.decision;
+function extractResult(event: PriorAuthRunEvent): Partial<PriorAuthRunResult> {
+  if (!event.details) return {};
 
-  if (!decision || typeof decision !== "object") {
-    return null;
-  }
-
-  return decision as GatewayDecisionEvent;
+  return {
+    priorAuthCase: event.details.priorAuthCase as PriorAuthCase | undefined,
+    requirements: event.details.requirements as PayerRequirements | undefined,
+    evidence: event.details.evidence as EvidenceResult | undefined,
+    authPackage: event.details.authPackage,
+    submission: event.details.submission,
+    roi: event.details.roi,
+    practiceRoi: event.details.practiceRoi,
+    audit: event.details.audit,
+    ehrStats: event.details.ehrStats,
+    payerStats: event.details.payerStats
+  };
 }
 
-export function ingestRunEvent(event: RunEvent) {
+export function ingestRunEvent(event: PriorAuthRunEvent, scenario: "complete" | "incomplete" = "complete") {
   const existing = store.runs.get(event.runId);
   const now = new Date().toISOString();
   const run: RunState =
     existing ??
     ({
       runId: event.runId,
+      caseId: event.caseId,
+      scenario,
       events: [],
-      decisions: [],
-      startedAt: event.ts,
+      result: {},
+      startedAt: event.timestamp,
       updatedAt: now
     } satisfies RunState);
 
   run.events.push(event);
   run.updatedAt = now;
-
-  const decision = extractDecision(event);
-  if (decision) {
-    run.decisions = [
-      ...run.decisions.filter((item) => item.requestId !== decision.requestId),
-      decision
-    ];
-  }
+  run.result = {
+    ...run.result,
+    ...extractResult(event)
+  };
 
   store.runs.set(event.runId, run);
   store.latestRunId = event.runId;

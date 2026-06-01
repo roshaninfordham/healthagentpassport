@@ -1,0 +1,13 @@
+{
+  "id": "trusted-priorauth-agent",
+  "name": "TrustedPriorAuthAgent",
+  "publicKeyPem": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEAC3kiKVieR8yA7VK2SO+3WqAmEa8qKklOw3T3WQb+lKk=\n-----END PUBLIC KEY-----\n",
+  "privateKeyPem": "-----BEGIN PRIVATE KEY-----\nMC4CAQAwBQYDK2VwBCIEIC9rIBBz5mUezdJPOV+La284nat6bEdrFPS6v7zzCqbY\n-----END PRIVATE KEY-----\n",
+  "scopes": [
+    "patient/Patient.read",
+    "patient/Condition.read",
+    "patient/MedicationRequest.read",
+    "patient/Observation.read",
+    "payer/PriorAuth.write"
+  ]
+}

@@ -1,112 +1,71 @@
-# Developer Quickstart
+# Quickstart
 
-HealthAgent Passport is now a developer product demo: a TypeScript SDK, CLI,
-reverse proxy gateway, sample health API, and live Studio control plane.
+## Prerequisites
 
-## Run The Full Demo
+- Node.js 20+
+- pnpm
+- No external payer, EHR, wallet, LLM, or PHI dependency
+
+## Install
 
 ```bash
 pnpm install
+```
+
+## Run the Demo
+
+```bash
 pnpm demo
 ```
 
-Open:
+Open [http://localhost:3000](http://localhost:3000).
 
-```txt
-http://localhost:3000
+```mermaid
+flowchart LR
+  Demo[pnpm demo] --> EHR[Sample EHR API<br/>:4001]
+  Demo --> Payer[Sample Payer API<br/>:4002]
+  Demo --> Studio[PriorAuth Studio<br/>:3000]
 ```
 
-The command starts:
+## Try Both Cases
 
-```txt
-Sample health API        http://localhost:4001
-HealthAgent gateway      http://localhost:8787
-Studio dashboard         http://localhost:3000
-```
+1. Click `Run complete ePA case`.
+2. Watch the timeline stream EHR reads, payer requirements, evidence matching,
+   package build, payer submission, ROI, and audit.
+3. Click `Run incomplete documentation case`.
+4. Confirm missing evidence appears and no payer submission is sent.
 
-## CLI Flow
+## CLI
 
 ```bash
-pnpm sample-api
-pnpm gateway
-pnpm studio
+pnpm --filter @priorauth/passport-cli dev doctor
+pnpm --filter @priorauth/passport-cli dev submit
+pnpm --filter @priorauth/passport-cli dev sign
 ```
 
-Then, in another terminal:
+## Environment
 
 ```bash
-pnpm --filter @healthagent/passport-cli dev agent run trusted \
-  --gateway http://localhost:8787 \
-  --patient maya-001
-
-pnpm --filter @healthagent/passport-cli dev agent run attack \
-  --gateway http://localhost:8787
+EHR_API_URL="http://localhost:4001"
+PAYER_API_URL="http://localhost:4002"
+DEMO_STEP_DELAY_MS="750"
+ALLOW_REAL_PHI="false"
+SYNTHETIC_DATA_ONLY="true"
 ```
 
-Trusted traffic is forwarded upstream. Attack traffic receives HTTP 403 before
-the upstream API is called.
+## Expected Output
 
-## Protect Another API
+The complete case should show:
 
-Edit [healthagent.yaml](../healthagent.yaml), then run:
+- Prior-auth ID like `PA-DEMO-1001`
+- Payer decision `pending_payer_review`
+- `$5.18` transaction savings
+- `7 min` baseline time saved
+- Evidence hash and ROI hash
 
-```bash
-npx healthagent gateway \
-  --policy ./healthagent.yaml \
-  --upstream https://my-health-api.example \
-  --port 8787 \
-  --studio http://localhost:3000
-```
+The incomplete case should show:
 
-Point agents at:
-
-```txt
-http://localhost:8787
-```
-
-not the upstream API directly.
-
-## SDK Flow
-
-```ts
-import { createGateway, signAgentRequest } from "@healthagent/passport";
-
-const gateway = createGateway({
-  policyFile: "./healthagent.yaml",
-  upstream: "http://localhost:4001",
-  studio: "http://localhost:3000",
-  demoDelayMs: 650
-});
-
-await gateway.listen(8787);
-
-const signed = await signAgentRequest({
-  agentKeyFile: ".hap/agents/trusted-care-agent.json",
-  method: "GET",
-  path: "/fhir/patient/maya-001"
-});
-
-await fetch("http://localhost:8787/fhir/patient/maya-001", {
-  headers: signed.headers
-});
-```
-
-## Policy File
-
-The demo policy lives in [healthagent.yaml](../healthagent.yaml). It defines:
-
-- service metadata and upstream URL
-- agent public key files
-- protected routes
-- required FHIR/SMART scopes
-- minimum trust scores
-- sandbox risk thresholds
-- deny rules such as `/fhir/all`
-
-## Demo Limits
-
-- Synthetic data only
-- No PHI
-- No medical advice
-- Deterministic mock sandbox by default
-- In-memory live event store for hackathon demo speed
+- Missing `Recent observation`
+- Missing `Referral note`
+- `not_submitted`
+- Draft audit evidence

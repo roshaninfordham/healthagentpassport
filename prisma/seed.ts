@@ -1,103 +1,81 @@
 import { PrismaClient } from "@prisma/client";
-import { randomUUID } from "node:crypto";
-import { canonicalJson } from "../src/lib/canonical";
+import { createHash, randomUUID } from "node:crypto";
 import {
-  makeEd25519KeyPair,
-  sha256Hex,
-  signText
-} from "../src/lib/crypto";
-import {
-  demoFhirBundle,
-  demoPatient,
-  trustedScopes
-} from "../src/lib/demo-data";
+  calculatePerAuthRoi,
+  getSeedCase,
+  loadRoiConfig
+} from "@priorauth/passport-core";
 
 const prisma = new PrismaClient();
 
+function hash(value: unknown) {
+  return createHash("sha256")
+    .update(JSON.stringify(value))
+    .digest("hex");
+}
+
 async function main() {
-  await prisma.auditEvent.deleteMany();
-  await prisma.sandboxRun.deleteMany();
-  await prisma.nonce.deleteMany();
-  await prisma.delegation.deleteMany();
-  await prisma.patient.deleteMany();
-  await prisma.agentIdentity.deleteMany();
+  await prisma.priorAuthAuditEvent.deleteMany();
+  await prisma.priorAuthRun.deleteMany();
+  await prisma.priorAuthCase.deleteMany();
 
-  const trustedKeys = makeEd25519KeyPair();
-  const sketchyKeys = makeEd25519KeyPair();
-
-  await prisma.patient.create({
-    data: {
-      id: demoPatient.id,
-      displayName: demoPatient.displayName,
-      dateOfBirth: demoPatient.dateOfBirth,
-      sex: demoPatient.sex,
-      syntheticLabel: demoPatient.syntheticLabel,
-      fhirBundleJson: JSON.stringify(demoFhirBundle, null, 2)
-    }
-  });
-
-  await prisma.agentIdentity.create({
-    data: {
-      id: "trusted-care-agent",
-      displayName: "TrustedCareAgent",
-      kind: "trusted",
-      publicKeyPem: trustedKeys.publicKeyPem,
-      privateKeyPem: trustedKeys.privateKeyPem,
-      valironAgentId: "demo-trusted-001",
-      walletAddress: "DemoTrustedWallet111111111111111111111111111",
-      defaultTier: "AAA",
-      defaultRoute: "prod",
-      onChainScore: 94,
-      behaviorScore: 97,
-      identityScore: 100,
-      complianceScore: 96
-    }
-  });
-
-  await prisma.agentIdentity.create({
-    data: {
-      id: "sketchy-scraper-agent",
-      displayName: "SketchyScraperAgent",
-      kind: "suspicious",
-      publicKeyPem: sketchyKeys.publicKeyPem,
-      privateKeyPem: sketchyKeys.privateKeyPem,
-      valironAgentId: "demo-sketchy-999",
-      walletAddress: "DemoSketchyWallet99999999999999999999999999",
-      defaultTier: "C",
-      defaultRoute: "sandbox_only",
-      onChainScore: 12,
-      behaviorScore: 18,
-      identityScore: 50,
-      complianceScore: 10
-    }
-  });
-
-  const delegationPayload = {
-    version: "healthagent-passport/v1",
-    patientId: demoPatient.id,
-    agentId: "trusted-care-agent",
-    scopes: trustedScopes,
-    purpose: "care-admin-prior-auth-demo",
-    expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 6).toISOString()
+  const demoCase = getSeedCase("pa-case-001");
+  const roi = calculatePerAuthRoi(loadRoiConfig().input);
+  const evidence = {
+    complete: true,
+    matched: [
+      "diagnosis_list",
+      "medication_list",
+      "recent_vitals_or_observation",
+      "referral_note"
+    ],
+    missing: []
   };
+  const runId = randomUUID();
 
-  const canonicalPayload = canonicalJson(delegationPayload);
-  const delegationHash = sha256Hex(canonicalPayload);
+  await prisma.priorAuthCase.create({
+    data: {
+      id: demoCase.caseId,
+      patientId: demoCase.patient.id,
+      patientName: demoCase.patient.name,
+      memberId: demoCase.patient.memberId,
+      providerNpi: demoCase.provider.npi,
+      providerName: demoCase.provider.name,
+      payerId: demoCase.payer.id,
+      payerName: demoCase.payer.name,
+      serviceCode: demoCase.requestedService.code,
+      serviceDisplay: demoCase.requestedService.display,
+      diagnosisCodesJson: JSON.stringify(
+        demoCase.diagnoses.map((diagnosis) => diagnosis.code)
+      ),
+      status: "ready_for_demo"
+    }
+  });
 
-  await prisma.delegation.create({
+  await prisma.priorAuthRun.create({
+    data: {
+      id: runId,
+      caseId: demoCase.caseId,
+      scenario: "complete",
+      status: "seeded_demo_snapshot",
+      eventCount: 15,
+      roiJson: JSON.stringify(roi),
+      evidenceJson: JSON.stringify(evidence),
+      submissionJson: JSON.stringify({
+        priorAuthId: "PA-DEMO-SEED",
+        decision: "pending_payer_review"
+      })
+    }
+  });
+
+  await prisma.priorAuthAuditEvent.create({
     data: {
       id: randomUUID(),
-      patientId: demoPatient.id,
-      agentId: "trusted-care-agent",
-      scopesJson: JSON.stringify(trustedScopes),
-      purpose: delegationPayload.purpose,
-      expiresAt: new Date(delegationPayload.expiresAt),
-      status: "active",
-      canonicalPayload,
-      delegationHash,
-      patientSignature: signText(trustedKeys.privateKeyPem, delegationHash),
-      solanaSignature: `mock-solana-anchor-${delegationHash.slice(0, 16)}`,
-      solanaExplorerUrl: ""
+      runId,
+      caseId: demoCase.caseId,
+      status: "submitted",
+      evidenceHash: hash(evidence),
+      roiHash: hash(roi)
     }
   });
 }
@@ -105,7 +83,7 @@ async function main() {
 main()
   .then(async () => {
     await prisma.$disconnect();
-    console.log("Seeded HealthAgent Passport demo data.");
+    console.log("Seeded PriorAuth Passport demo data.");
   })
   .catch(async (error) => {
     console.error(error);

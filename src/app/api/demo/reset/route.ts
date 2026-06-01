@@ -1,34 +1,21 @@
-import { execFile } from "node:child_process";
-import { promisify } from "node:util";
 import { clearRuns } from "@/lib/live-events";
 
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
-const execFileAsync = promisify(execFile);
-
-export async function POST(request: Request) {
-  const token = request.headers.get("x-demo-reset-token");
-
-  if (token !== process.env.DEMO_RESET_TOKEN) {
-    return Response.json({ error: "Unauthorized." }, { status: 401 });
-  }
-
-  if (process.env.NODE_ENV === "production") {
-    return Response.json(
-      { error: "Demo reset disabled in production." },
-      { status: 403 }
-    );
-  }
-
-  await execFileAsync("pnpm", ["demo:reset"], {
-    timeout: 60_000,
-    maxBuffer: 1024 * 1024
-  });
-
+export async function POST() {
   clearRuns();
-  await fetch("http://localhost:4001/stats/reset", { method: "POST" }).catch(
-    () => null
-  );
+  const ehrUrl = process.env.EHR_API_URL ?? "http://localhost:4001";
+  const payerUrl = process.env.PAYER_API_URL ?? "http://localhost:4002";
+
+  await Promise.all([
+    fetch(`${ehrUrl}/stats/reset`, { method: "POST" }).catch(
+      () => null
+    ),
+    fetch(`${payerUrl}/stats/reset`, { method: "POST" }).catch(
+      () => null
+    )
+  ]);
 
   return Response.json({ ok: true });
 }

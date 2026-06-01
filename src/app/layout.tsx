@@ -3,9 +3,9 @@ import { Toaster } from "sonner";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "HealthAgent Passport",
+  title: "PriorAuth Passport",
   description:
-    "Agent identity, patient consent, behavioral sandboxing, trust routing, and audit gateway for healthcare APIs."
+    "Real-time electronic prior authorization infrastructure for requirement discovery, evidence matching, payer submission, ROI, and audit proof."
 };
 
 export default function RootLayout({

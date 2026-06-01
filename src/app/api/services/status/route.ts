@@ -35,28 +35,28 @@ async function checkFile(path: string) {
 }
 
 export async function GET() {
-  const sampleApiUrl =
-    process.env.SAMPLE_API_URL ?? "http://localhost:4001/health";
-  const gatewayUrl = process.env.GATEWAY_URL ?? "http://localhost:8787/health";
+  const ehrUrl = process.env.EHR_API_URL ?? "http://localhost:4001";
+  const payerUrl = process.env.PAYER_API_URL ?? "http://localhost:4002";
 
-  const [sampleApi, gateway, policy] = await Promise.all([
-    checkHttp(sampleApiUrl),
-    checkHttp(gatewayUrl),
-    checkFile("healthagent.yaml")
+  const [ehr, payer, roiConfig, policyConfig] = await Promise.all([
+    checkHttp(`${ehrUrl}/health`),
+    checkHttp(`${payerUrl}/health`),
+    checkFile("config/roi.yaml"),
+    checkFile("config/priorauth-policy.yaml")
   ]);
 
   return Response.json({
-    sampleApi,
-    gateway,
+    ehr,
+    payer,
     studio: {
       online: true,
       url: "http://localhost:3000",
       stream: "/api/events/stream"
     },
-    policy,
+    roiConfig,
+    policyConfig,
     demo: {
-      mode: process.env.HAP_DEMO_MODE ?? "true",
-      stepDelayMs: Number(process.env.HAP_DEMO_STEP_DELAY_MS ?? 650)
+      stepDelayMs: Number(process.env.DEMO_STEP_DELAY_MS ?? 750)
     }
   });
 }

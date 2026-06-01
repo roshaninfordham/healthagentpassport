@@ -1,0 +1,16 @@
+{
+  "id": "delegation-maya-priorauth",
+  "patientId": "maya-001",
+  "agentId": "trusted-priorauth-agent",
+  "purpose": "prior-authorization-administrative-workflow",
+  "status": "active",
+  "expiresAt": "2030-01-01T00:00:00.000Z",
+  "scopes": [
+    "patient/Patient.read",
+    "patient/Condition.read",
+    "patient/MedicationRequest.read",
+    "patient/Observation.read",
+    "payer/PriorAuth.write"
+  ],
+  "syntheticOnly": true
+}

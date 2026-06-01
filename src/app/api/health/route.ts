@@ -3,13 +3,12 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   return Response.json({
     ok: true,
-    name: "HealthAgent Passport",
+    name: "PriorAuth Passport",
     demoMode: {
-      valiron: process.env.VALIRON_MODE || "mock",
-      solana: process.env.SOLANA_MODE || "mock",
-      payment: process.env.PAYMENT_MODE || "mock",
-      llm: process.env.LLM_MODE || "mock",
-      sandbox: process.env.SANDBOX_MODE || "mock"
+      ehr: process.env.EHR_API_URL || "http://localhost:4001",
+      payer: process.env.PAYER_API_URL || "http://localhost:4002",
+      stepDelayMs: process.env.DEMO_STEP_DELAY_MS || "750",
+      syntheticOnly: true
     }
   });
 }

@@ -1,43 +1,45 @@
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const upstreamStatsUrl =
-  process.env.SAMPLE_API_STATS_URL ?? "http://localhost:4001/stats";
-
-export async function GET() {
+async function fetchStats(url: string) {
   try {
-    const response = await fetch(upstreamStatsUrl, { cache: "no-store" });
-    const stats = await response.json();
-
-    return Response.json({
+    const response = await fetch(url, { cache: "no-store" });
+    return {
       online: response.ok,
-      stats
-    });
+      stats: await response.json()
+    };
   } catch {
-    return Response.json({
+    return {
       online: false,
-      stats: {
-        totalHits: 0,
-        patientReadHits: 0,
-        priorAuthHits: 0,
-        bulkDumpHits: 0,
-        lastHits: []
-      }
-    });
+      stats: null
+    };
   }
 }
 
-export async function POST() {
-  try {
-    const response = await fetch("http://localhost:4001/stats/reset", {
-      method: "POST"
-    });
+export async function GET() {
+  const ehrUrl = process.env.EHR_API_URL ?? "http://localhost:4001";
+  const payerUrl = process.env.PAYER_API_URL ?? "http://localhost:4002";
 
-    return Response.json({
-      online: response.ok,
-      stats: await response.json()
-    });
-  } catch {
-    return Response.json({ online: false }, { status: 503 });
-  }
+  const [ehr, payer] = await Promise.all([
+    fetchStats(`${ehrUrl}/stats`),
+    fetchStats(`${payerUrl}/stats`)
+  ]);
+
+  return Response.json({ ehr, payer });
+}
+
+export async function POST() {
+  const ehrUrl = process.env.EHR_API_URL ?? "http://localhost:4001";
+  const payerUrl = process.env.PAYER_API_URL ?? "http://localhost:4002";
+
+  await Promise.all([
+    fetch(`${ehrUrl}/stats/reset`, { method: "POST" }).catch(
+      () => null
+    ),
+    fetch(`${payerUrl}/stats/reset`, { method: "POST" }).catch(
+      () => null
+    )
+  ]);
+
+  return GET();
 }
